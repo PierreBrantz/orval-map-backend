@@ -1,6 +1,8 @@
 spring:
   application:
     name: orval-map
+  profiles:
+    active: dev
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/orvalmap}
     username: ${DB_USER:postgres}
@@ -26,7 +28,3 @@ logging:
   level:
     com.orvalmap.security: DEBUG
     org.springframework.security: DEBUG
-
-spring:
-  profiles:
-    active: dev
