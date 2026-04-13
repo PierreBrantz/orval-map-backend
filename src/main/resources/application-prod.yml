@@ -1,10 +1,13 @@
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    # Railway donne souvent DATABASE_URL, mais on a besoin du format JDBC.
+    # Si vous utilisez le plugin Postgres de Railway, il fournit PGHOST, PGPORT, etc.
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update # 🛡️ Ne jamais supprimer les données en production
-    show-sql: false # Généralement désactivé en production pour la performance et la sécurité
+      ddl-auto: update
+    show-sql: false
