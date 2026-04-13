@@ -1,8 +1,19 @@
 spring:
   application:
     name: orval-map
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev} # Utilise la variable d'env, sinon 'dev' par défaut
+  
+  datasource:
+    # On utilise les variables Railway par défaut, avec localhost en secours
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:orvalmap}
+    username: ${PGUSER:postgres}
+    password: ${PGPASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
 
 # Configuration commune
 cloudinary:
@@ -14,10 +25,8 @@ jwt:
   secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}
 
 server:
-  address: 0.0.0.0
   port: ${PORT:8080}
 
 logging:
   level:
     com.orvalmap: INFO
-    org.springframework.security: INFO
