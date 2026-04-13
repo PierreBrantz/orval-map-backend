@@ -2,20 +2,20 @@ spring:
   application:
     name: orval-map
   profiles:
-    active: dev # Profil par défaut en local
+    active: ${SPRING_PROFILES_ACTIVE:dev} # Utilise la variable d'env, sinon 'dev' par défaut
 
-# Configuration commune à tous les environnements
+# Configuration commune
 cloudinary:
   cloud_name: ${CLOUDINARY_CLOUD_NAME}
   api_key: ${CLOUDINARY_API_KEY}
   api_secret: ${CLOUDINARY_API_SECRET}
 
 jwt:
-  secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrande}
+  secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}
 
 server:
   address: 0.0.0.0
-  port: ${PORT:8080} # Railway injecte la variable PORT automatiquement
+  port: ${PORT:8080}
 
 logging:
   level:
