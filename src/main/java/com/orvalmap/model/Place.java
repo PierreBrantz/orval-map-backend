@@ -28,13 +28,14 @@ public class Place {
     @NotNull(message = "Longitude obligatoire")
     private double lng;
 
+    private Double price; // Prix de l'Orval
+
     private String imageUrl;
 
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    // Constructeur utilitaire pour le DataLoader (optionnel avec @Builder mais pratique)
     public Place(String name, String city, double lat, double lng) {
         this.name = name;
         this.city = city;

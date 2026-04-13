@@ -42,11 +42,16 @@ public class AuthController {
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .roles(Set.of(userRole)) // <-- Set<Role>
+                .roles(Set.of(userRole))
                 .build();
 
-        userRepository.save(user);
-        return ResponseEntity.ok("Utilisateur créé avec succès");
+        user = userRepository.save(user);
+
+        // Retourne directement le token pour connecter l'utilisateur après inscription
+        UserDetailsImpl userDetails = new UserDetailsImpl(user);
+        String jwtToken = jwtUtil.generateToken(userDetails);
+
+        return ResponseEntity.ok(new AuthResponse(jwtToken));
     }
 
     // ---------------- LOGIN ----------------

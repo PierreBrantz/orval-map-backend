@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update # 🛡️ Ne jamais supprimer les données en production
+    show-sql: false # Généralement désactivé en production pour la performance et la sécurité

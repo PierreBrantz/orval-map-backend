@@ -23,26 +23,25 @@ public class PlaceRequestController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping
     public ResponseEntity<PlaceRequest> submitRequest(@Valid @RequestBody PlaceRequest request, Authentication authentication) {
-        // authentication.getName() contient le username extrait du JWT
         return ResponseEntity.ok(placeRequestService.createRequest(request, authentication.getName()));
     }
 
     // 🔒 Réservé aux ADMIN
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @GetMapping("/pending") // ✅ Changé de @GetMapping à @GetMapping("/pending")
     public List<PlaceRequest> getPendingRequests() {
         return placeRequestService.getAllPendingRequests();
     }
 
     // 🔒 Réservé aux ADMIN
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PostMapping("/{id}/validate")
     public ResponseEntity<Place> validateRequest(@PathVariable Long id) {
         return ResponseEntity.ok(placeRequestService.validateRequest(id));
     }
 
     // 🔒 Réservé aux ADMIN
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<Void> rejectRequest(@PathVariable Long id) {
         placeRequestService.rejectRequest(id);

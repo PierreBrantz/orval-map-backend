@@ -30,6 +30,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String path = request.getServletPath();
+        logger.debug("Processing request: " + request.getMethod() + " " + path);
 
         // ✅ 1️⃣ Ignore les endpoints publics et H2
         if (path.startsWith("/api/auth/")
@@ -50,7 +51,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // ✅ 3️⃣ Récupère le header Authorization
         final String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // Aucun token → continue sans authentification
+            logger.debug("No Bearer token found in request: " + path);
             filterChain.doFilter(request, response);
             return;
         }
@@ -61,26 +62,32 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             username = jwtUtil.extractUsername(jwt);
+            logger.debug("Extracted username from token: " + username);
         } catch (Exception e) {
-            logger.warn("JWT Filter: Cannot extract username from token - " + e.getMessage());
+            logger.error("JWT Filter: Cannot extract username from token - " + e.getMessage());
         }
 
         // ✅ 5️⃣ Si utilisateur non encore authentifié
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                logger.debug("UserDetails loaded for: " + username + " with authorities: " + userDetails.getAuthorities());
 
-            if (jwtUtil.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                logger.debug("✅ JWT Filter: Authenticated user " + username);
-            } else {
-                logger.warn("⚠️ JWT Filter: Invalid or expired token for user " + username);
+                if (jwtUtil.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.info("✅ JWT Filter: Successfully authenticated user " + username);
+                } else {
+                    logger.warn("⚠️ JWT Filter: Invalid or expired token for user " + username);
+                }
+            } catch (Exception e) {
+                logger.error("JWT Filter: Error during authentication for user " + username + " - " + e.getMessage());
             }
         }
 

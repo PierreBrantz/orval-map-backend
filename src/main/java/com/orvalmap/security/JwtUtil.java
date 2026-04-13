@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,9 @@ import java.util.stream.Collectors;
 @Service
 public class JwtUtil {
 
-    private static final String SECRET_KEY = "cleSecreteAChangerQuiDoitQdMemeetreSuperGrande";
+    // 🔒 Injection de la clé depuis application.yml (ou variable d'environnement JWT_SECRET)
+    @Value("${jwt.secret:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}")
+    private String secretKey;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -40,7 +43,9 @@ public class JwtUtil {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        // On décode la clé. Note : En prod, assurez-vous que JWT_SECRET est une chaîne Base64 valide
+        // ou adaptez pour lire les bytes directement si ce n'est pas du Base64.
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -60,12 +65,10 @@ public class JwtUtil {
     public String generateToken(UserDetailsImpl userDetails) {
         Map<String, Object> extraClaims = new HashMap<>();
         
-        // --- AJOUT DES RÔLES ---
         var roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         extraClaims.put("roles", roles);
-        // -----------------------
 
         return generateToken(extraClaims, userDetails);
     }

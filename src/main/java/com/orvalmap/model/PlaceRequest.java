@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Data
 @NoArgsConstructor
@@ -32,16 +30,13 @@ public class PlaceRequest {
 
     private Double price;
 
+    private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private RequestStatus status = RequestStatus.PENDING;
+    private PlaceRequestStatus status = PlaceRequestStatus.PENDING;
 
-    private String submittedBy; // Optionnel : nom de l'utilisateur qui a fait la proposition
-
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
+    @ManyToOne
+    @JoinColumn(name = "requester_id")
+    private User requester; // L'utilisateur qui a fait la suggestion
 }
