@@ -3,11 +3,10 @@ spring:
     name: orval-map
   
   datasource:
-    # Ces noms sont les standards de Spring Boot. 
-    # Ils seront écrasés si vous définissez SPRING_DATASOURCE_URL dans Railway.
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orvalmap}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    # On essaie d'abord les variables directes de Railway si elles sont liées
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:orvalmap}}
+    username: ${PGUSER:postgres}
+    password: ${PGPASSWORD:password}
     driver-class-name: org.postgresql.Driver
 
   jpa:
