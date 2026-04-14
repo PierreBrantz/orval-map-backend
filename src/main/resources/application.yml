@@ -3,8 +3,10 @@ spring:
     name: orval-map
   
   datasource:
-    # On utilise les variables Railway par défaut, avec localhost en secours
-    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:orvalmap}
+    # Priorité 1: Utiliser DATABASE_URL si elle est définie (souvent fournie par Railway pour le service Postgres)
+    # Priorité 2: Utiliser PGHOST/PGPORT/PGDATABASE si définies (variables Railway pour le service Postgres)
+    # Priorité 3: Utiliser localhost:5432/orvalmap par défaut (pour le développement local)
+    url: ${DATABASE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:orvalmap}}
     username: ${PGUSER:postgres}
     password: ${PGPASSWORD:password}
     driver-class-name: org.postgresql.Driver
