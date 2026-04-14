@@ -3,8 +3,8 @@ spring:
     name: orval-map
   
   datasource:
-    # On utilise les variables standards de Spring Boot.
-    # Si elles ne sont pas sur Railway, on utilise le localhost.
+    # Ces noms sont les standards de Spring Boot. 
+    # Ils seront écrasés si vous définissez SPRING_DATASOURCE_URL dans Railway.
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orvalmap}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
