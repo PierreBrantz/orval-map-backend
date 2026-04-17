@@ -59,8 +59,9 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> {
             // Endpoints publics
             auth.requestMatchers("/api/auth/**").permitAll();
-            auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll(); // Lecture des lieux
-            auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();   // <-- AUTORISATION DES IMAGES
+            auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll();
+            auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
+            auth.requestMatchers("/error").permitAll(); // 👈 Ajouté pour voir les vraies erreurs
 
             if (isDev) {
                 auth.requestMatchers(
