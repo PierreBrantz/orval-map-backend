@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,14 +30,11 @@ public class PlaceService {
     }
 
     public Page<Place> getAllPlaces(String city, Double lng, Double lat, Double radius, Pageable pageable) {
-        // 1. Cas simple : Filtrage par ville (paginé par la DB)
         if (city != null && !city.isEmpty()) {
             return placeRepository.findByCityIgnoreCase(city, pageable);
         }
 
-        // 2. Cas complexe : Filtrage par rayon (pagination en mémoire)
         if (lat != null && lng != null && radius != null) {
-            // On récupère TOUT (attention à la perf si > 10k lieux, mais ok pour commencer)
             List<Place> allPlaces = placeRepository.findAll();
             
             double finalLat = lat;
@@ -47,7 +45,6 @@ public class PlaceService {
                     .filter(p -> GeoUtils.distanceKm(finalLat, finalLng, p.getLat(), p.getLng()) <= finalRadius)
                     .collect(Collectors.toList());
 
-            // Pagination manuelle de la liste filtrée
             int start = (int) pageable.getOffset();
             int end = Math.min((start + pageable.getPageSize()), filteredPlaces.size());
 
@@ -59,7 +56,6 @@ public class PlaceService {
             return new PageImpl<>(pageContent, pageable, filteredPlaces.size());
         }
 
-        // 3. Cas par défaut : Tout récupérer (paginé par la DB)
         return placeRepository.findAll(pageable);
     }
 
@@ -87,6 +83,17 @@ public class PlaceService {
                 .orElse(null);
     }
 
+    // ✅ Méthode pour confirmer la présence d'un Orval
+    public Place verifyPlace(Long id) {
+        return placeRepository.findById(id)
+                .map(place -> {
+                    place.setVerificationCount(place.getVerificationCount() + 1);
+                    place.setLastVerificationDate(LocalDateTime.now());
+                    return placeRepository.save(place);
+                })
+                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
+    }
+
     public boolean isOwner(Long placeId, String username) {
         Place place = placeRepository.findById(placeId).orElse(null);
         if (place == null || place.getOwner() == null) return false;
@@ -98,12 +105,10 @@ public class PlaceService {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new RuntimeException("Place not found with id: " + placeId));
 
-        // Upload vers Cloudinary
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
-                "folder", "orval-map/places" // Dossier dans Cloudinary
+                "folder", "orval-map/places"
         ));
 
-        // Récupérer l'URL sécurisée (https)
         String imageUrl = (String) uploadResult.get("secure_url");
 
         place.setImageUrl(imageUrl);

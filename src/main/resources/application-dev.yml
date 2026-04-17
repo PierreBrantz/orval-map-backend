@@ -6,7 +6,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update # Met à jour le schéma sans supprimer les données existantes
+      ddl-auto: create # ⚠️ Temporaire : Recrée les tables pour ajouter les nouvelles colonnes
     show-sql: true
     properties:
       hibernate:

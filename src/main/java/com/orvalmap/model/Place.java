@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -35,6 +37,12 @@ public class Place {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
+
+    // --- Nouveaux champs pour la vérification communautaire ---
+    @Builder.Default
+    private int verificationCount = 0;
+
+    private LocalDateTime lastVerificationDate;
 
     public Place(String name, String city, double lat, double lng) {
         this.name = name;

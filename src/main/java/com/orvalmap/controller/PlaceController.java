@@ -24,34 +24,40 @@ public class PlaceController {
         this.placeService = placeService;
     }
 
-    // ✅ Accessible sans JWT
-    // Exemple d'appel : GET /api/places?page=0&size=10&sort=name,asc
     @GetMapping
     public Page<Place> getAllPlaces(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
             @RequestParam(required = false) Double radius,
-            @PageableDefault(size = 20, sort = "name") Pageable pageable // Par défaut : 20 éléments, triés par nom
+            @PageableDefault(size = 20, sort = "name") Pageable pageable
     ) {
         return placeService.getAllPlaces(city, lng, lat, radius, pageable);
     }
 
-    // ✅ Accessible sans JWT
     @GetMapping("/{id}")
     public ResponseEntity<Place> getPlaceById(@PathVariable Long id) {
         Place place = placeService.getPlaceById(id);
         return (place != null) ? ResponseEntity.ok(place) : ResponseEntity.notFound().build();
     }
 
-    // 🔒 Création réservée aux ADMIN
+    // ✅ Confirmation communautaire : Accessible à tout utilisateur connecté
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{id}/verify")
+    public ResponseEntity<Place> verifyPlace(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(placeService.verifyPlace(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public Place addPlace(@Valid @RequestBody Place place) {
         return placeService.addPlace(place);
     }
 
-    // 🔒 Suppression réservée aux ADMIN
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePlace(@PathVariable Long id) {
@@ -59,7 +65,6 @@ public class PlaceController {
         return ResponseEntity.noContent().build();
     }
 
-    // 🔒 Mise à jour réservée aux ADMIN ou OWNER
     @PreAuthorize("hasRole('ADMIN') or (hasRole('OWNER') and @placeService.isOwner(#id, authentication.name))")
     @PutMapping("/{id}")
     public ResponseEntity<Place> updatePlace(
@@ -70,7 +75,6 @@ public class PlaceController {
         return (result != null) ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
     }
 
-    // 🔒 Upload réservé aux ADMIN ou OWNER du lieu
     @PreAuthorize("hasRole('ADMIN') or (hasRole('OWNER') and @placeService.isOwner(#id, authentication.name))")
     @PostMapping("/{id}/upload-image")
     public ResponseEntity<?> uploadImage(
@@ -82,7 +86,7 @@ public class PlaceController {
             return ResponseEntity.ok(Map.of("url", imageUrl));
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("Erreur lors de l'upload de l'image.");
-        } catch (RuntimeException e) { // e.g., Place not found
+        } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }

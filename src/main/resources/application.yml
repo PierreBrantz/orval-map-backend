@@ -3,24 +3,27 @@ spring:
     name: orval-map
   
   datasource:
-    # On essaie d'abord les variables directes de Railway si elles sont liées
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:orvalmap}}
-    username: ${PGUSER:postgres}
-    password: ${PGPASSWORD:password}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orvalmap}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update # ✅ Sécurisé pour la prod
     show-sql: false
 
 cloudinary:
-  cloud_name: ${CLOUDINARY_CLOUD_NAME}
-  api_key: ${CLOUDINARY_API_KEY}
-  api_secret: ${CLOUDINARY_API_SECRET}
+  cloud_name: ${CLOUDINARY_CLOUD_NAME:votre_cloud_name}
+  api_key: ${CLOUDINARY_API_KEY:votre_api_key}
+  api_secret: ${CLOUDINARY_API_SECRET:votre_api_secret}
 
 jwt:
   secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}
 
 server:
   port: ${PORT:8080}
+
+logging:
+  level:
+    com.orvalmap: INFO
