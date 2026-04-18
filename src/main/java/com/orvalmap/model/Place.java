@@ -30,7 +30,7 @@ public class Place {
     @NotNull(message = "Longitude obligatoire")
     private double lng;
 
-    private Double price; // Prix de l'Orval
+    private Double price;
 
     private String imageUrl;
 
@@ -38,9 +38,9 @@ public class Place {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    // --- Nouveaux champs pour la vérification communautaire ---
+    // --- Changé int en Integer pour éviter l'erreur NOT NULL en prod ---
     @Builder.Default
-    private int verificationCount = 0;
+    private Integer verificationCount = 0;
 
     private LocalDateTime lastVerificationDate;
 
