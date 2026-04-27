@@ -14,11 +14,12 @@ spring:
       ddl-auto: update
     show-sql: false
 
-cloudinary:
-  # On s'assure que si la variable d'env est vide, on n'utilise pas 'root'
-  cloud_name: ${CLOUDINARY_CLOUD_NAME:votre_cloud_name_reel}
-  api_key: ${CLOUDINARY_API_KEY:votre_api_key_reel}
-  api_secret: ${CLOUDINARY_API_SECRET:votre_api_secret_reel}
+# On utilise un préfixe unique 'app.' pour éviter les conflits avec Railway/Docker
+app:
+  cloudinary:
+    name: ${CLOUDINARY_CLOUD_NAME:votre_cloud_name_reel}
+    key: ${CLOUDINARY_API_KEY:votre_api_key_reel}
+    secret: ${CLOUDINARY_API_SECRET:votre_api_secret_reel}
 
 jwt:
   secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}

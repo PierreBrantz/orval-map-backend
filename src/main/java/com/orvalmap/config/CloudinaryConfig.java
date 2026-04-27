@@ -15,21 +15,21 @@ public class CloudinaryConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudinaryConfig.class);
 
-    @Value("${cloudinary.cloud_name:votre_cloud_name}")
+    @Value("${app.cloudinary.name}")
     private String cloudName;
 
-    @Value("${cloudinary.api_key:votre_api_key}")
+    @Value("${app.cloudinary.key}")
     private String apiKey;
 
-    @Value("${cloudinary.api_secret:votre_api_secret}")
+    @Value("${app.cloudinary.secret}")
     private String apiSecret;
 
     @Bean
     public Cloudinary cloudinary() {
-        logger.info("Initializing Cloudinary with cloud_name: {}", cloudName);
+        logger.info("Initializing Cloudinary with app.cloudinary.name: {}", cloudName);
         
         if ("root".equals(cloudName)) {
-            logger.error("CRITICAL: Cloudinary cloud_name is set to 'root'. This will cause errors.");
+            logger.error("CRITICAL: Cloudinary name is STILL 'root'. Check Railway variables for CLOUDINARY_CLOUD_NAME.");
         }
 
         Map<String, String> config = new HashMap<>();
