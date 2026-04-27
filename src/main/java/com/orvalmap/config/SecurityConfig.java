@@ -51,7 +51,7 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf.disable());
         http.headers(headers -> {
-            if (isDev) headers.frameOptions(frame -> frame.disable());
+            headers.frameOptions(frame -> frame.disable());
         });
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
@@ -61,7 +61,7 @@ public class SecurityConfig {
             auth.requestMatchers("/api/auth/**").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
-            auth.requestMatchers("/error").permitAll(); // 👈 Ajouté pour voir les vraies erreurs
+            auth.requestMatchers("/error").permitAll(); // Toujours autoriser l'affichage des erreurs
 
             if (isDev) {
                 auth.requestMatchers(
