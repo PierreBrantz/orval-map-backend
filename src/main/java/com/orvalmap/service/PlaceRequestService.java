@@ -1,5 +1,7 @@
 package com.orvalmap.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.orvalmap.model.Place;
 import com.orvalmap.model.PlaceRequest;
 import com.orvalmap.model.PlaceRequestStatus;
@@ -10,8 +12,11 @@ import com.orvalmap.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -20,9 +25,9 @@ public class PlaceRequestService {
     private final PlaceRequestRepository placeRequestRepository;
     private final PlaceRepository placeRepository;
     private final UserRepository userRepository;
+    private final Cloudinary cloudinary;
 
     public PlaceRequest createRequest(PlaceRequest request, String username) {
-        // Trouver l'utilisateur qui fait la demande
         User requester = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
@@ -44,11 +49,9 @@ public class PlaceRequestService {
             throw new RuntimeException("Cette requête a déjà été traitée");
         }
 
-        // 1. Marquer comme approuvée
         request.setStatus(PlaceRequestStatus.APPROVED);
         placeRequestRepository.save(request);
 
-        // 2. Transformer en vrai Place
         Place newPlace = Place.builder()
                 .name(request.getName())
                 .city(request.getCity())
@@ -66,5 +69,13 @@ public class PlaceRequestService {
                 .orElseThrow(() -> new RuntimeException("Requête non trouvée"));
         request.setStatus(PlaceRequestStatus.REJECTED);
         placeRequestRepository.save(request);
+    }
+
+    // ✅ Nouvel upload pour les suggestions (sans ID de lieu encore existant)
+    public String uploadRequestImage(MultipartFile file) throws IOException {
+        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "folder", "orval-map/requests"
+        ));
+        return (String) uploadResult.get("secure_url");
     }
 }

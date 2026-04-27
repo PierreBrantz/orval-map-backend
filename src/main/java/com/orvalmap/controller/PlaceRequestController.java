@@ -9,8 +9,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/place-requests")
@@ -26,9 +29,21 @@ public class PlaceRequestController {
         return ResponseEntity.ok(placeRequestService.createRequest(request, authentication.getName()));
     }
 
+    // ✅ Upload d'image pour une suggestion (avant création)
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/upload-image")
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = placeRequestService.uploadRequestImage(file);
+            return ResponseEntity.ok(Map.of("url", imageUrl));
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Erreur lors de l'upload de l'image : " + e.getMessage());
+        }
+    }
+
     // 🔒 Réservé aux ADMIN
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
-    @GetMapping("/pending") // ✅ Changé de @GetMapping à @GetMapping("/pending")
+    @GetMapping("/pending")
     public List<PlaceRequest> getPendingRequests() {
         return placeRequestService.getAllPendingRequests();
     }
