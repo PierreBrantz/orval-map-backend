@@ -3,23 +3,22 @@ spring:
     name: orval-map
   
   datasource:
-    # Utilisation directe des variables Railway avec une priorité absolue
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orvalmap}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
 
   jpa:
-    # On force le dialecte pour éviter l'erreur "Unable to determine Dialect"
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
 
 cloudinary:
-  cloud_name: ${CLOUDINARY_CLOUD_NAME:unused}
-  api_key: ${CLOUDINARY_API_KEY:unused}
-  api_secret: ${CLOUDINARY_API_SECRET:unused}
+  # On s'assure que si la variable d'env est vide, on n'utilise pas 'root'
+  cloud_name: ${CLOUDINARY_CLOUD_NAME:votre_cloud_name_reel}
+  api_key: ${CLOUDINARY_API_KEY:votre_api_key_reel}
+  api_secret: ${CLOUDINARY_API_SECRET:votre_api_secret_reel}
 
 jwt:
   secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}
