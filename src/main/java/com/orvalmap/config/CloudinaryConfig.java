@@ -15,13 +15,13 @@ public class CloudinaryConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudinaryConfig.class);
 
-    @Value("${app.cloudinary.name}")
+    @Value("${CLOUDINARY_CLOUD_NAME}")
     private String cloudName;
 
-    @Value("${app.cloudinary.key}")
+    @Value("${CLOUDINARY_API_KEY}")
     private String apiKey;
 
-    @Value("${app.cloudinary.secret}")
+    @Value("${CLOUDINARY_API_SECRET}")
     private String apiSecret;
 
     @Bean
