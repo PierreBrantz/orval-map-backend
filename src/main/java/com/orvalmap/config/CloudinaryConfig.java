@@ -15,13 +15,13 @@ public class CloudinaryConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudinaryConfig.class);
 
-    @Value("${CLOUDINARY_CLOUD_NAME}")
+    @Value("${CLOUDINARY_CLOUD_NAME:your-default-cloud-name}") // Valeur par défaut pour éviter le crash
     private String cloudName;
 
-    @Value("${CLOUDINARY_API_KEY}")
+    @Value("${CLOUDINARY_API_KEY:your-default-api-key}") // Valeur par défaut pour éviter le crash
     private String apiKey;
 
-    @Value("${CLOUDINARY_API_SECRET}")
+    @Value("${CLOUDINARY_API_SECRET:your-default-api-secret}") // Valeur par défaut pour éviter le crash
     private String apiSecret;
 
     @Bean

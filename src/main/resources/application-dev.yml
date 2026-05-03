@@ -12,6 +12,12 @@ spring:
       hibernate:
         format_sql: true
 
+app:
+  cloudinary:
+    name: dcrwgoet6 # REMPLACEZ PAR VOTRE VRAI CLOUD NAME LOCAL
+    key: 938263175175197     # REMPLACEZ PAR VOTRE VRAIE CLÉ API LOCALE
+    secret: bq_GpAu2TTmd0Bynljq1XKVPBLc # REMPLACEZ PAR VOTRE VRAI SECRET API LOCAL
+
 logging:
   level:
     com.orvalmap: DEBUG

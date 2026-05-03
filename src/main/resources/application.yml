@@ -17,9 +17,9 @@ spring:
 # On utilise un préfixe unique 'app.' pour éviter les conflits avec Railway/Docker
 app:
   cloudinary:
-    name: ${CLOUDINARY_CLOUD_NAME:votre_cloud_name_reel}
-    key: ${CLOUDINARY_API_KEY:votre_api_key_reel}
-    secret: ${CLOUDINARY_API_SECRET:votre_api_secret_reel}
+    name: ${CLOUDINARY_CLOUD_NAME}
+    key: ${CLOUDINARY_API_KEY}
+    secret: ${CLOUDINARY_API_SECRET}
 
 jwt:
   secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}
