@@ -1,5 +1,6 @@
 package com.orvalmap.config;
 
+import com.orvalmap.security.CustomAuthenticationEntryPoint;
 import com.orvalmap.security.JwtAuthFilter;
 import com.orvalmap.security.JwtUtil;
 import com.orvalmap.security.UserDetailsServiceImpl;
@@ -31,12 +32,15 @@ public class SecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final Environment environment;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint; // Injection ajoutée
 
     public SecurityConfig(
                           UserDetailsServiceImpl userDetailsService,
-                          Environment environment) {
+                          Environment environment,
+                          CustomAuthenticationEntryPoint customAuthenticationEntryPoint) { // Paramètre ajouté
         this.userDetailsService = userDetailsService;
         this.environment = environment;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint; // Initialisation
     }
 
     @Bean
@@ -76,6 +80,9 @@ public class SecurityConfig {
             // Tout le reste sécurisé
             auth.anyRequest().authenticated();
         });
+
+        // Configuration du CustomAuthenticationEntryPoint
+        http.exceptionHandling(exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint)); // Ligne ajoutée
 
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.authenticationProvider(authenticationProvider());
