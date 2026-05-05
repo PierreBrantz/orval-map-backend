@@ -54,8 +54,8 @@ public class PlaceController {
             if (e.getMessage().contains("Lieu non trouvé")) {
                 return ResponseEntity.notFound().build();
             } else if (e.getMessage().contains("Vous avez déjà vérifié ce lieu")) {
-                // Renvoie 403 Forbidden ou 429 Too Many Requests
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+                // Renvoie 429 Too Many Requests avec un message utilisateur clair
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(e.getMessage());
             }
             // Pour toute autre RuntimeException inattendue
             return ResponseEntity.internalServerError().body("Une erreur inattendue est survenue: " + e.getMessage());
