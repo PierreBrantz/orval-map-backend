@@ -3,7 +3,11 @@ package com.orvalmap.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.orvalmap.model.Place;
+import com.orvalmap.model.User;
+import com.orvalmap.model.UserPlaceVerification;
 import com.orvalmap.repository.PlaceRepository;
+import com.orvalmap.repository.UserPlaceVerificationRepository;
+import com.orvalmap.repository.UserRepository;
 import com.orvalmap.utils.GeoUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -23,10 +27,16 @@ public class PlaceService {
 
     private final PlaceRepository placeRepository;
     private final Cloudinary cloudinary;
+    private final UserPlaceVerificationRepository userPlaceVerificationRepository; // Nouvelle injection
+    private final UserRepository userRepository; // Nouvelle injection
 
-    public PlaceService(PlaceRepository placeRepository, Cloudinary cloudinary) {
+    public PlaceService(PlaceRepository placeRepository, Cloudinary cloudinary,
+                        UserPlaceVerificationRepository userPlaceVerificationRepository, // Nouveau paramètre
+                        UserRepository userRepository) { // Nouveau paramètre
         this.placeRepository = placeRepository;
         this.cloudinary = cloudinary;
+        this.userPlaceVerificationRepository = userPlaceVerificationRepository; // Initialisation
+        this.userRepository = userRepository; // Initialisation
     }
 
     public Page<Place> getAllPlaces(String city, Double lng, Double lat, Double radius, Pageable pageable) {
@@ -83,15 +93,36 @@ public class PlaceService {
                 .orElse(null);
     }
 
-    // ✅ Méthode pour confirmer la présence d'un Orval
-    public Place verifyPlace(Long id) {
-        return placeRepository.findById(id)
-                .map(place -> {
-                    place.setVerificationCount(place.getVerificationCount() + 1);
-                    place.setLastVerificationDate(LocalDateTime.now());
-                    return placeRepository.save(place);
-                })
-                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
+    // ✅ Méthode pour confirmer la présence d'un Orval, limitée à une fois par 24h par utilisateur
+    public Place verifyPlace(Long placeId, String username) { // Ajout de placeId et username
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + placeId));
+
+        User verifier = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé : " + username));
+
+        // Vérifier si l'utilisateur a déjà vérifié ce lieu au cours des dernières 24 heures
+        LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
+        boolean alreadyVerifiedRecently = userPlaceVerificationRepository
+                .findTopByVerifierAndPlaceAndVerificationDateAfterOrderByVerificationDateDesc(verifier, place, twentyFourHoursAgo)
+                .isPresent();
+
+        if (alreadyVerifiedRecently) {
+            throw new RuntimeException("Vous avez déjà vérifié ce lieu au cours des dernières 24 heures.");
+        }
+
+        // Enregistrer la nouvelle vérification
+        UserPlaceVerification newVerification = UserPlaceVerification.builder()
+                .verifier(verifier)
+                .place(place)
+                .verificationDate(LocalDateTime.now())
+                .build();
+        userPlaceVerificationRepository.save(newVerification);
+
+        // Mettre à jour le Place
+        place.setVerificationCount(place.getVerificationCount() + 1);
+        place.setLastVerificationDate(LocalDateTime.now());
+        return placeRepository.save(place);
     }
 
     public boolean isOwner(Long placeId, String username) {
