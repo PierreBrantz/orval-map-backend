@@ -66,7 +66,7 @@ public class SecurityConfig {
             auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
             auth.requestMatchers("/error").permitAll(); // Toujours autoriser l'affichage des erreurs
-            auth.requestMatchers("/privacy.html", "/cgu.html", "/static/**").permitAll(); // Permettre l'accès aux fichiers statiques
+            auth.requestMatchers("/privacy.html", "/terms.html", "/static/**").permitAll(); // Permettre l'accès aux fichiers statiques
 
             if (isDev) {
                 auth.requestMatchers(
