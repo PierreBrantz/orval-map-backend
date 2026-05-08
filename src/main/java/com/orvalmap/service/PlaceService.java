@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Import added
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -27,16 +28,16 @@ public class PlaceService {
 
     private final PlaceRepository placeRepository;
     private final Cloudinary cloudinary;
-    private final UserPlaceVerificationRepository userPlaceVerificationRepository; // Nouvelle injection
-    private final UserRepository userRepository; // Nouvelle injection
+    private final UserPlaceVerificationRepository userPlaceVerificationRepository;
+    private final UserRepository userRepository;
 
     public PlaceService(PlaceRepository placeRepository, Cloudinary cloudinary,
-                        UserPlaceVerificationRepository userPlaceVerificationRepository, // Nouveau paramètre
-                        UserRepository userRepository) { // Nouveau paramètre
+                        UserPlaceVerificationRepository userPlaceVerificationRepository,
+                        UserRepository userRepository) {
         this.placeRepository = placeRepository;
         this.cloudinary = cloudinary;
-        this.userPlaceVerificationRepository = userPlaceVerificationRepository; // Initialisation
-        this.userRepository = userRepository; // Initialisation
+        this.userPlaceVerificationRepository = userPlaceVerificationRepository;
+        this.userRepository = userRepository;
     }
 
     public Page<Place> getAllPlaces(String city, Double lng, Double lat, Double radius, Pageable pageable) {
@@ -77,8 +78,16 @@ public class PlaceService {
         return placeRepository.save(place);
     }
 
+    @Transactional // Added transactional annotation
     public void deletePlace(Long id) {
-        placeRepository.deleteById(id);
+        Place place = placeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
+        
+        // La suppression des vérifications associées est maintenant gérée par orphanRemoval = true dans l'entité Place.
+        // userPlaceVerificationRepository.deleteAllByPlace(place);
+        
+        // Supprimer le lieu
+        placeRepository.delete(place);
     }
 
     public Place updatePlace(Long id, Place updatedPlace) {
@@ -94,7 +103,7 @@ public class PlaceService {
     }
 
     // ✅ Méthode pour confirmer la présence d'un Orval, limitée à une fois par 24h par utilisateur
-    public Place verifyPlace(Long placeId, String username) { // Ajout de placeId et username
+    public Place verifyPlace(Long placeId, String username) {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + placeId));
 

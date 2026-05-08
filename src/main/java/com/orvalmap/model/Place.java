@@ -48,7 +48,7 @@ public class Place {
     private LocalDateTime lastVerificationDate;
 
     // Nouvelle relation pour gérer la suppression en cascade des vérifications
-    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true) // Added orphanRemoval = true
     @JsonIgnore // Évite la boucle infinie lors de la sérialisation JSON
     @ToString.Exclude // Évite la boucle infinie dans les logs/toString()
     @Builder.Default // Initialise la collection pour éviter les NullPointerExceptions
