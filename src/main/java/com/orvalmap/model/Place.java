@@ -47,11 +47,15 @@ public class Place {
 
     private LocalDateTime lastVerificationDate;
 
+    @Enumerated(EnumType.STRING) // Stocke le nom de l'énumération en tant que chaîne de caractères
+    @Builder.Default // Valeur par défaut pour les nouvelles instances créées avec @Builder
+    private PlaceType placeType = PlaceType.BAR; // Valeur par défaut BAR
+
     // Nouvelle relation pour gérer la suppression en cascade des vérifications
-    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true) // Added orphanRemoval = true
-    @JsonIgnore // Évite la boucle infinie lors de la sérialisation JSON
-    @ToString.Exclude // Évite la boucle infinie dans les logs/toString()
-    @Builder.Default // Initialise la collection pour éviter les NullPointerExceptions
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
     private Set<UserPlaceVerification> verifications = new HashSet<>();
 
     public Place(String name, String city, double lat, double lng) {
@@ -59,5 +63,6 @@ public class Place {
         this.city = city;
         this.lat = lat;
         this.lng = lng;
+        this.placeType = PlaceType.BAR; // Assure une valeur par défaut pour ce constructeur aussi
     }
 }
