@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-@NoArgsConstructor // Ajout explicite du constructeur sans argument
-@AllArgsConstructor // Ajout explicite du constructeur avec tous les arguments
+@NoArgsConstructor
+@AllArgsConstructor
 public class PlaceDTO {
     private Long id;
     private String name;
