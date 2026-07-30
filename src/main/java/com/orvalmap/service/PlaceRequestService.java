@@ -5,6 +5,7 @@ import com.cloudinary.utils.ObjectUtils;
 import com.orvalmap.model.Place;
 import com.orvalmap.model.PlaceRequest;
 import com.orvalmap.model.PlaceRequestStatus;
+import com.orvalmap.model.PlaceType;
 import com.orvalmap.model.User;
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceRequestRepository;
@@ -30,6 +31,10 @@ public class PlaceRequestService {
     public PlaceRequest createRequest(PlaceRequest request, String username) {
         User requester = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (request.getPlaceType() == null) {
+            request.setPlaceType(PlaceType.BAR);
+        }
 
         request.setRequester(requester);
         request.setStatus(PlaceRequestStatus.PENDING);
