@@ -14,18 +14,6 @@ spring:
       ddl-auto: update
     show-sql: false
 
-  mail:
-    host: smtp.sendgrid.net # Changé pour SendGrid
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-
 # On utilise un préfixe unique 'app.' pour éviter les conflits avec Railway/Docker
 app:
   cloudinary:
