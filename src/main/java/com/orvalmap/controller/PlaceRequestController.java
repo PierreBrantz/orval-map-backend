@@ -2,6 +2,7 @@ package com.orvalmap.controller;
 
 import com.orvalmap.model.Place;
 import com.orvalmap.model.PlaceRequest;
+import com.orvalmap.model.PlaceRequestDTO; // Import de PlaceRequestDTO
 import com.orvalmap.service.PlaceRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +26,8 @@ public class PlaceRequestController {
     // 🔒 Réservé aux utilisateurs connectés
     @PreAuthorize("isAuthenticated()")
     @PostMapping
-    public ResponseEntity<PlaceRequest> submitRequest(@Valid @RequestBody PlaceRequest request, Authentication authentication) {
-        return ResponseEntity.ok(placeRequestService.createRequest(request, authentication.getName()));
+    public ResponseEntity<PlaceRequest> submitRequest(@Valid @RequestBody PlaceRequestDTO requestDTO, Authentication authentication) { // Utilise PlaceRequestDTO
+        return ResponseEntity.ok(placeRequestService.createRequest(requestDTO, authentication.getName())); // Passe le DTO au service
     }
 
     // ✅ Upload d'image pour une suggestion (avant création)

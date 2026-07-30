@@ -2,11 +2,7 @@ package com.orvalmap.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.orvalmap.model.Place;
-import com.orvalmap.model.PlaceRequest;
-import com.orvalmap.model.PlaceRequestStatus;
-import com.orvalmap.model.PlaceType;
-import com.orvalmap.model.User;
+import com.orvalmap.model.*; // Import de tous les modèles
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceRequestRepository;
 import com.orvalmap.repository.UserRepository;
@@ -28,16 +24,22 @@ public class PlaceRequestService {
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
 
-    public PlaceRequest createRequest(PlaceRequest request, String username) {
+    public PlaceRequest createRequest(PlaceRequestDTO requestDTO, String username) {
         User requester = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        if (request.getPlaceType() == null) {
-            request.setPlaceType(PlaceType.BAR);
-        }
+        PlaceRequest request = PlaceRequest.builder()
+                .name(requestDTO.getName())
+                .city(requestDTO.getCity())
+                .lat(requestDTO.getLat())
+                .lng(requestDTO.getLng())
+                .price(requestDTO.getPrice())
+                .imageUrl(requestDTO.getImageUrl())
+                .placeType(requestDTO.getPlaceType() != null ? requestDTO.getPlaceType() : PlaceType.BAR) // Valeur par défaut ici
+                .requester(requester)
+                .status(PlaceRequestStatus.PENDING)
+                .build();
 
-        request.setRequester(requester);
-        request.setStatus(PlaceRequestStatus.PENDING);
         return placeRequestRepository.save(request);
     }
 
@@ -64,7 +66,7 @@ public class PlaceRequestService {
                 .lng(request.getLng())
                 .price(request.getPrice())
                 .imageUrl(request.getImageUrl())
-                .placeType(request.getPlaceType()) // Ajout du placeType
+                .placeType(request.getPlaceType())
                 .build();
 
         return placeRepository.save(newPlace);
