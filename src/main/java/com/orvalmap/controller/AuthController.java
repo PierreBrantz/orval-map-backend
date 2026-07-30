@@ -6,6 +6,9 @@ import com.orvalmap.repository.RoleRepository;
 import com.orvalmap.repository.UserRepository;
 import com.orvalmap.security.JwtUtil;
 import com.orvalmap.security.UserDetailsImpl;
+import com.orvalmap.service.EmailService;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +17,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
+import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,6 +31,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final EmailService emailService;
 
     // ---------------- INSCRIPTION ----------------
     @PostMapping("/register")
@@ -34,20 +39,22 @@ public class AuthController {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Nom d'utilisateur déjà utilisé");
         }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body("Email déjà utilisé");
+        }
 
-        // récupère le rôle ROLE_USER ou le crée s'il n'existe pas
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseGet(() -> roleRepository.save(new Role(null, "ROLE_USER")));
 
         User user = User.builder()
                 .username(request.getUsername())
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .roles(Set.of(userRole))
                 .build();
 
         user = userRepository.save(user);
 
-        // Retourne directement le token pour connecter l'utilisateur après inscription
         UserDetailsImpl userDetails = new UserDetailsImpl(user);
         String jwtToken = jwtUtil.generateToken(userDetails);
 
@@ -57,29 +64,69 @@ public class AuthController {
     // ---------------- LOGIN ----------------
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // Authentification
         var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.getLogin(), request.getPassword())
         );
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-        // Génération du token
         String jwtToken = jwtUtil.generateToken(userDetails);
 
         return ResponseEntity.ok(new AuthResponse(jwtToken));
     }
 
+    // ---------------- FORGOT PASSWORD ----------------
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        return userRepository.findByEmail(request.getEmail())
+                .map(user -> {
+                    String token = UUID.randomUUID().toString();
+                    user.setResetToken(token);
+                    user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
+                    userRepository.save(user);
+
+                    String resetLink = "orvalmaps://reset-password?token=" + token;
+                    emailService.sendEmail(user.getEmail(), "Réinitialisation de votre mot de passe OrvalMaps",
+                            "Pour réinitialiser votre mot de passe, cliquez sur le lien suivant : " + resetLink);
+
+                    return ResponseEntity.ok().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ---------------- RESET PASSWORD ----------------
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        return userRepository.findByResetToken(request.getToken())
+                .map(user -> {
+                    if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+                        return ResponseEntity.badRequest().body("Le token a expiré.");
+                    }
+
+                    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                    user.setResetToken(null);
+                    user.setResetTokenExpiry(null);
+                    userRepository.save(user);
+
+                    return ResponseEntity.ok().build();
+                })
+                .orElse(ResponseEntity.badRequest().body("Token invalide."));
+    }
+
     // ---------------- DTOs ----------------
     @Data
     static class RegisterRequest {
+        @NotBlank(message = "Le nom d'utilisateur est obligatoire")
         private String username;
+        @NotBlank(message = "L'email est obligatoire")
+        @Email(message = "Format d'email invalide")
+        private String email;
+        @NotBlank(message = "Le mot de passe est obligatoire")
         private String password;
     }
 
     @Data
     static class LoginRequest {
-        private String username;
+        private String login;
         private String password;
     }
 
@@ -87,5 +134,19 @@ public class AuthController {
     @AllArgsConstructor
     static class AuthResponse {
         private String token;
+    }
+
+    @Data
+    static class ForgotPasswordRequest {
+        @NotBlank @Email
+        private String email;
+    }
+
+    @Data
+    static class ResetPasswordRequest {
+        @NotBlank
+        private String token;
+        @NotBlank
+        private String newPassword;
     }
 }

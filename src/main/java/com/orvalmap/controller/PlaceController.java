@@ -1,6 +1,8 @@
 package com.orvalmap.controller;
 
 import com.orvalmap.model.Place;
+import com.orvalmap.model.PlaceDTO; // Import de PlaceDTO
+import com.orvalmap.model.PlaceType;
 import com.orvalmap.service.PlaceService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -27,14 +29,15 @@ public class PlaceController {
     }
 
     @GetMapping
-    public Page<Place> getAllPlaces(
+    public Page<PlaceDTO> getAllPlaces( // Changement du type de retour
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
             @RequestParam(required = false) Double radius,
+            @RequestParam(required = false) PlaceType placeType,
             @PageableDefault(size = 20, sort = "name") Pageable pageable
     ) {
-        return placeService.getAllPlaces(city, lng, lat, radius, pageable);
+        return placeService.getAllPlaces(city, lng, lat, radius, placeType, pageable);
     }
 
     @GetMapping("/{id}")
@@ -43,21 +46,18 @@ public class PlaceController {
         return (place != null) ? ResponseEntity.ok(place) : ResponseEntity.notFound().build();
     }
 
-    // ✅ Confirmation communautaire : Accessible à tout utilisateur connecté
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/verify")
-    public ResponseEntity<?> verifyPlace(@PathVariable Long id, Authentication authentication) { // Ajout de Authentication
+    public ResponseEntity<?> verifyPlace(@PathVariable Long id, Authentication authentication) {
         try {
-            Place verifiedPlace = placeService.verifyPlace(id, authentication.getName()); // Passage du username
+            Place verifiedPlace = placeService.verifyPlace(id, authentication.getName());
             return ResponseEntity.ok(verifiedPlace);
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Lieu non trouvé")) {
                 return ResponseEntity.notFound().build();
             } else if (e.getMessage().contains("Vous avez déjà vérifié ce lieu")) {
-                // Renvoie 429 Too Many Requests avec un message utilisateur clair
                 return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(e.getMessage());
             }
-            // Pour toute autre RuntimeException inattendue
             return ResponseEntity.internalServerError().body("Une erreur inattendue est survenue: " + e.getMessage());
         }
     }

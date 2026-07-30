@@ -2,9 +2,7 @@ package com.orvalmap.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.orvalmap.model.Place;
-import com.orvalmap.model.User;
-import com.orvalmap.model.UserPlaceVerification;
+import com.orvalmap.model.*; // Import de tous les modèles
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.UserPlaceVerificationRepository;
 import com.orvalmap.repository.UserRepository;
@@ -12,8 +10,10 @@ import com.orvalmap.utils.GeoUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // Import added
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,34 +41,44 @@ public class PlaceService {
         this.userRepository = userRepository;
     }
 
-    public Page<Place> getAllPlaces(String city, Double lng, Double lat, Double radius, Pageable pageable) {
-        if (city != null && !city.isEmpty()) {
-            return placeRepository.findByCityIgnoreCase(city, pageable);
+    public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
+        
+        Page<Place> placesPage = placeRepository.findAll(pageable); // Récupère une page de lieux
+
+        // Récupère l'utilisateur actuel s'il est authentifié
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = null;
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+            currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
         }
 
-        if (lat != null && lng != null && radius != null) {
-            List<Place> allPlaces = placeRepository.findAll();
-            
-            double finalLat = lat;
-            double finalLng = lng;
-            double finalRadius = radius;
-
-            List<Place> filteredPlaces = allPlaces.stream()
-                    .filter(p -> GeoUtils.distanceKm(finalLat, finalLng, p.getLat(), p.getLng()) <= finalRadius)
-                    .collect(Collectors.toList());
-
-            int start = (int) pageable.getOffset();
-            int end = Math.min((start + pageable.getPageSize()), filteredPlaces.size());
-
-            if (start > filteredPlaces.size()) {
-                return new PageImpl<>(Collections.emptyList(), pageable, filteredPlaces.size());
-            }
-            
-            List<Place> pageContent = filteredPlaces.subList(start, end);
-            return new PageImpl<>(pageContent, pageable, filteredPlaces.size());
+        // Récupère les vérifications de l'utilisateur actuel pour les lieux de la page
+        Set<Long> userVerifiedPlaceIds = Collections.emptySet();
+        if (currentUser != null) {
+            List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
+            userVerifiedPlaceIds = userPlaceVerificationRepository.findVerifiedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIds);
         }
 
-        return placeRepository.findAll(pageable);
+        // Convertit la page de Place en page de PlaceDTO
+        Page<PlaceDTO> placesDtoPage = placesPage.map(place -> convertToDto(place, userVerifiedPlaceIds));
+
+        return placesDtoPage;
+    }
+
+    private PlaceDTO convertToDto(Place place, Set<Long> userVerifiedPlaceIds) {
+        PlaceDTO dto = new PlaceDTO();
+        dto.setId(place.getId());
+        dto.setName(place.getName());
+        dto.setCity(place.getCity());
+        dto.setLat(place.getLat());
+        dto.setLng(place.getLng());
+        dto.setPrice(place.getPrice());
+        dto.setImageUrl(place.getImageUrl());
+        dto.setPlaceType(place.getPlaceType());
+        dto.setVerificationCount(place.getVerificationCount());
+        dto.setLastVerificationDate(place.getLastVerificationDate());
+        dto.setHasUserVerified(userVerifiedPlaceIds.contains(place.getId())); // Définit si l'utilisateur a vérifié ce lieu
+        return dto;
     }
 
     public Place getPlaceById(Long id) {
@@ -75,18 +86,17 @@ public class PlaceService {
     }
 
     public Place addPlace(Place place) {
+        if (place.getPlaceType() == null) {
+            place.setPlaceType(PlaceType.BAR);
+        }
         return placeRepository.save(place);
     }
 
-    @Transactional // Added transactional annotation
+    @Transactional
     public void deletePlace(Long id) {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
-        // La suppression des vérifications associées est maintenant gérée par orphanRemoval = true dans l'entité Place.
-        // userPlaceVerificationRepository.deleteAllByPlace(place);
-        
-        // Supprimer le lieu
         placeRepository.delete(place);
     }
 
@@ -97,12 +107,12 @@ public class PlaceService {
                     existing.setCity(updatedPlace.getCity());
                     existing.setLat(updatedPlace.getLat());
                     existing.setLng(updatedPlace.getLng());
+                    existing.setPlaceType(updatedPlace.getPlaceType());
                     return placeRepository.save(existing);
                 })
                 .orElse(null);
     }
 
-    // ✅ Méthode pour confirmer la présence d'un Orval, limitée à une fois par 24h par utilisateur
     public Place verifyPlace(Long placeId, String username) {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + placeId));
@@ -110,7 +120,6 @@ public class PlaceService {
         User verifier = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé : " + username));
 
-        // Vérifier si l'utilisateur a déjà vérifié ce lieu au cours des dernières 24 heures
         LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
         boolean alreadyVerifiedRecently = userPlaceVerificationRepository
                 .findTopByVerifierAndPlaceAndVerificationDateAfterOrderByVerificationDateDesc(verifier, place, twentyFourHoursAgo)
@@ -120,7 +129,6 @@ public class PlaceService {
             throw new RuntimeException("Vous avez déjà vérifié ce lieu au cours des dernières 24 heures.");
         }
 
-        // Enregistrer la nouvelle vérification
         UserPlaceVerification newVerification = UserPlaceVerification.builder()
                 .verifier(verifier)
                 .place(place)
@@ -128,7 +136,6 @@ public class PlaceService {
                 .build();
         userPlaceVerificationRepository.save(newVerification);
 
-        // Mettre à jour le Place
         place.setVerificationCount(place.getVerificationCount() + 1);
         place.setLastVerificationDate(LocalDateTime.now());
         return placeRepository.save(place);
