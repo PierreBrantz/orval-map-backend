@@ -2,6 +2,9 @@ package com.orvalmap.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orvalmap.model.Place;
+import com.orvalmap.model.PlaceCreationDTO;
+import com.orvalmap.model.PlaceDTO;
+import com.orvalmap.model.PlaceType;
 import com.orvalmap.service.PlaceService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -28,18 +32,21 @@ public class PlaceControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private PlaceService placeService; // On mock le service, pas le repository
+    private PlaceService placeService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
     void testGetAllPlaces() throws Exception {
-        Place p1 = new Place("Bar1", "Liège", 50.645, 5.573);
-        Place p2 = new Place("Bar2", "Bruxelles", 50.850, 4.350);
+        // Création de PlaceDTO pour les tests
+        PlaceDTO p1Dto = PlaceDTO.builder()
+                .id(1L).name("Bar1").city("Liège").lat(50.645).lng(5.573).placeType(PlaceType.BAR).hasUserVerified(false).build();
+        PlaceDTO p2Dto = PlaceDTO.builder()
+                .id(2L).name("Bar2").city("Bruxelles").lat(50.850).lng(4.350).placeType(PlaceType.BAR).hasUserVerified(false).build();
 
-        given(placeService.getAllPlaces(any(), any(), any(), any(), any(Pageable.class)))
-                .willReturn(new PageImpl<>(Arrays.asList(p1, p2)));
+        given(placeService.getAllPlaces(any(), any(), any(), any(), any(), any(Pageable.class)))
+                .willReturn(new PageImpl<>(Arrays.asList(p1Dto, p2Dto)));
 
         mockMvc.perform(get("/api/places"))
                 .andExpect(status().isOk())
@@ -49,25 +56,45 @@ public class PlaceControllerTest {
 
     @Test
     void testAddPlace() throws Exception {
-        Place p = new Place("BarTest", "Namur", 50.467, 4.867);
+        PlaceCreationDTO creationDTO = new PlaceCreationDTO();
+        creationDTO.setName("BarTest");
+        creationDTO.setCity("Namur");
+        creationDTO.setLat(50.467);
+        creationDTO.setLng(4.867);
+        creationDTO.setPlaceType(PlaceType.BAR); // Spécifier le type
 
-        given(placeService.addPlace(any(Place.class))).willAnswer(invocation -> invocation.getArgument(0));
+        // Le service retourne une entité Place, pas un DTO de création
+        Place savedPlace = Place.builder()
+                .id(1L)
+                .name(creationDTO.getName())
+                .city(creationDTO.getCity())
+                .lat(creationDTO.getLat())
+                .lng(creationDTO.getLng())
+                .placeType(creationDTO.getPlaceType())
+                .verificationCount(0)
+                .verifications(Collections.emptySet())
+                .build();
+
+        given(placeService.addPlace(any(PlaceCreationDTO.class))).willReturn(savedPlace);
 
         mockMvc.perform(post("/api/places")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(p)))
+                        .content(objectMapper.writeValueAsString(creationDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("BarTest"))
-                .andExpect(jsonPath("$.city").value("Namur"));
+                .andExpect(jsonPath("$.city").value("Namur"))
+                .andExpect(jsonPath("$.placeType").value("BAR"));
     }
 
     @Test
     void testGetPlacesByCity_Valid() throws Exception {
-        Place p1 = new Place("Bar1", "Liège", 50.645, 5.573);
-        Place p2 = new Place("Bar2", "Liège", 50.646, 5.574);
+        PlaceDTO p1Dto = PlaceDTO.builder()
+                .id(1L).name("Bar1").city("Liège").lat(50.645).lng(5.573).placeType(PlaceType.BAR).hasUserVerified(false).build();
+        PlaceDTO p2Dto = PlaceDTO.builder()
+                .id(2L).name("Bar2").city("Liège").lat(50.646).lng(5.574).placeType(PlaceType.BAR).hasUserVerified(false).build();
 
-        given(placeService.getAllPlaces(eq("Liège"), any(), any(), any(), any(Pageable.class)))
-                .willReturn(new PageImpl<>(Arrays.asList(p1, p2)));
+        given(placeService.getAllPlaces(eq("Liège"), any(), any(), any(), any(), any(Pageable.class)))
+                .willReturn(new PageImpl<>(Arrays.asList(p1Dto, p2Dto)));
 
         mockMvc.perform(get("/api/places?city=Liège"))
                 .andExpect(status().isOk())
@@ -77,7 +104,7 @@ public class PlaceControllerTest {
 
     @Test
     void testGetPlacesByCity_NotFound() throws Exception {
-        given(placeService.getAllPlaces(eq("Bruxelles"), any(), any(), any(), any(Pageable.class)))
+        given(placeService.getAllPlaces(eq("Bruxelles"), any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(new PageImpl<>(Collections.emptyList()));
 
         mockMvc.perform(get("/api/places?city=Bruxelles"))
