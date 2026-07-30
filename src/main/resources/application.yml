@@ -15,7 +15,7 @@ spring:
     show-sql: false
 
   mail:
-    host: smtp.gmail.com
+    host: smtp.sendgrid.net # Changé pour SendGrid
     port: 587
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
