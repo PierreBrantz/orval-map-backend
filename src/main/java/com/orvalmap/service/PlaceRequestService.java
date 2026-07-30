@@ -59,6 +59,7 @@ public class PlaceRequestService {
                 .lng(request.getLng())
                 .price(request.getPrice())
                 .imageUrl(request.getImageUrl())
+                .placeType(request.getPlaceType()) // Ajout du placeType
                 .build();
 
         return placeRepository.save(newPlace);

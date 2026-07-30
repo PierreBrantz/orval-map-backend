@@ -33,6 +33,9 @@ public class PlaceRequest {
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
+    private PlaceType placeType;
+
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private PlaceRequestStatus status = PlaceRequestStatus.PENDING;
 
