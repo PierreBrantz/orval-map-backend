@@ -85,10 +85,15 @@ public class PlaceService {
         return placeRepository.findById(id).orElse(null);
     }
 
-    public Place addPlace(Place place) {
-        if (place.getPlaceType() == null) {
-            place.setPlaceType(PlaceType.BAR);
-        }
+    public Place addPlace(PlaceCreationDTO placeCreationDTO) {
+        Place place = Place.builder()
+                .name(placeCreationDTO.getName())
+                .city(placeCreationDTO.getCity())
+                .lat(placeCreationDTO.getLat())
+                .lng(placeCreationDTO.getLng())
+                .price(placeCreationDTO.getPrice())
+                .placeType(placeCreationDTO.getPlaceType() != null ? placeCreationDTO.getPlaceType() : PlaceType.BAR) // Valeur par défaut ici
+                .build();
         return placeRepository.save(place);
     }
 

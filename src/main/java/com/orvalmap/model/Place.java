@@ -41,28 +41,19 @@ public class Place {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    // --- Changé int en Integer pour éviter l'erreur NOT NULL en prod ---
     @Builder.Default
     private Integer verificationCount = 0;
 
     private LocalDateTime lastVerificationDate;
 
-    @Enumerated(EnumType.STRING) // Stocke le nom de l'énumération en tant que chaîne de caractères
-    @Builder.Default // Valeur par défaut pour les nouvelles instances créées avec @Builder
-    private PlaceType placeType = PlaceType.BAR; // Valeur par défaut BAR
+    @Enumerated(EnumType.STRING)
+    private PlaceType placeType;
 
-    // Nouvelle relation pour gérer la suppression en cascade des vérifications
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
     @Builder.Default
     private Set<UserPlaceVerification> verifications = new HashSet<>();
 
-    public Place(String name, String city, double lat, double lng) {
-        this.name = name;
-        this.city = city;
-        this.lat = lat;
-        this.lng = lng;
-        this.placeType = PlaceType.BAR; // Assure une valeur par défaut pour ce constructeur aussi
-    }
+    // Constructeur personnalisé supprimé pour éviter les confusions, Lombok s'en charge.
 }

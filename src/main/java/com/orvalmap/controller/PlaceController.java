@@ -1,7 +1,8 @@
 package com.orvalmap.controller;
 
 import com.orvalmap.model.Place;
-import com.orvalmap.model.PlaceDTO; // Import de PlaceDTO
+import com.orvalmap.model.PlaceCreationDTO; // Import de PlaceCreationDTO
+import com.orvalmap.model.PlaceDTO;
 import com.orvalmap.model.PlaceType;
 import com.orvalmap.service.PlaceService;
 import jakarta.validation.Valid;
@@ -29,7 +30,7 @@ public class PlaceController {
     }
 
     @GetMapping
-    public Page<PlaceDTO> getAllPlaces( // Changement du type de retour
+    public Page<PlaceDTO> getAllPlaces(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
@@ -64,8 +65,8 @@ public class PlaceController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public Place addPlace(@Valid @RequestBody Place place) {
-        return placeService.addPlace(place);
+    public Place addPlace(@Valid @RequestBody PlaceCreationDTO placeCreationDTO) { // Utilise PlaceCreationDTO
+        return placeService.addPlace(placeCreationDTO); // Passe le DTO au service
     }
 
     @PreAuthorize("hasRole('ADMIN')")
