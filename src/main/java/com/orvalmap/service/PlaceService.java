@@ -95,13 +95,11 @@ public class PlaceService {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
-        // --- CORRECTION ---
-        // Si le lieu a un propriétaire, on doit le retirer de la collection du propriétaire
-        User owner = place.getOwner();
-        if (owner != null) {
-            owner.getOwnedPlaces().remove(place);
-            // Pas besoin de save le user, la transaction s'en occupe
-        }
+        // --- NOUVELLE CORRECTION ---
+        // On casse le lien avec le propriétaire avant de supprimer.
+        place.setOwner(null);
+        
+        // orphanRemoval=true sur Place.verifications s'occupera des vérifications.
         
         placeRepository.delete(place);
     }
