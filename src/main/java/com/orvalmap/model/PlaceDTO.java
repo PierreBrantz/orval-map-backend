@@ -1,9 +1,11 @@
 package com.orvalmap.model;
 
+import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
+@Builder // Ajout de l'annotation @Builder
 public class PlaceDTO {
     private Long id;
     private String name;
@@ -15,5 +17,5 @@ public class PlaceDTO {
     private PlaceType placeType;
     private Integer verificationCount;
     private LocalDateTime lastVerificationDate;
-    private boolean hasUserVerified; // Nouveau champ pour indiquer si l'utilisateur a vérifié ce lieu
+    private boolean hasUserVerified;
 }
