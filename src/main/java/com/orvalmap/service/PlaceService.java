@@ -95,12 +95,19 @@ public class PlaceService {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
-        // --- NOUVELLE CORRECTION ---
-        // On casse le lien avec le propriétaire avant de supprimer.
+        // --- APPROCHE DE SUPPRESSION MANUELLE ET SÉCURISÉE ---
+
+        // 1. Supprimer les dépendances directes (UserPlaceVerification)
+        userPlaceVerificationRepository.deleteAll(place.getVerifications());
+        place.getVerifications().clear(); // Vider la collection dans l'entité
+
+        // 2. Casser le lien avec le propriétaire
         place.setOwner(null);
         
-        // orphanRemoval=true sur Place.verifications s'occupera des vérifications.
-        
+        // 3. Sauvegarder les changements pour s'assurer que les liens sont rompus
+        placeRepository.save(place);
+
+        // 4. Enfin, supprimer le lieu
         placeRepository.delete(place);
     }
 
