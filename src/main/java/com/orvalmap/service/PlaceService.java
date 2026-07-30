@@ -7,6 +7,8 @@ import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.UserPlaceVerificationRepository;
 import com.orvalmap.repository.UserRepository;
 import com.orvalmap.utils.GeoUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +27,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class PlaceService {
 
     private final PlaceRepository placeRepository;
@@ -32,37 +36,26 @@ public class PlaceService {
     private final UserPlaceVerificationRepository userPlaceVerificationRepository;
     private final UserRepository userRepository;
 
-    public PlaceService(PlaceRepository placeRepository, Cloudinary cloudinary,
-                        UserPlaceVerificationRepository userPlaceVerificationRepository,
-                        UserRepository userRepository) {
-        this.placeRepository = placeRepository;
-        this.cloudinary = cloudinary;
-        this.userPlaceVerificationRepository = userPlaceVerificationRepository;
-        this.userRepository = userRepository;
-    }
-
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
-        Page<Place> placesPage = placeRepository.findAll(pageable); // Récupère une page de lieux
+        Page<Place> placesPage = placeRepository.findAll(pageable);
 
-        // Récupère l'utilisateur actuel s'il est authentifié
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = null;
+        final Set<Long> userVerifiedPlaceIds;
+
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
-            currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
+            User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
+            if (currentUser != null) {
+                List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
+                userVerifiedPlaceIds = userPlaceVerificationRepository.findVerifiedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIds);
+            } else {
+                userVerifiedPlaceIds = Collections.emptySet();
+            }
+        } else {
+            userVerifiedPlaceIds = Collections.emptySet();
         }
 
-        // Récupère les vérifications de l'utilisateur actuel pour les lieux de la page
-        Set<Long> userVerifiedPlaceIds = Collections.emptySet();
-        if (currentUser != null) {
-            List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
-            userVerifiedPlaceIds = userPlaceVerificationRepository.findVerifiedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIds);
-        }
-
-        // Convertit la page de Place en page de PlaceDTO
-        Page<PlaceDTO> placesDtoPage = placesPage.map(place -> convertToDto(place, userVerifiedPlaceIds));
-
-        return placesDtoPage;
+        return placesPage.map(place -> convertToDto(place, userVerifiedPlaceIds));
     }
 
     private PlaceDTO convertToDto(Place place, Set<Long> userVerifiedPlaceIds) {
@@ -77,7 +70,7 @@ public class PlaceService {
         dto.setPlaceType(place.getPlaceType());
         dto.setVerificationCount(place.getVerificationCount());
         dto.setLastVerificationDate(place.getLastVerificationDate());
-        dto.setHasUserVerified(userVerifiedPlaceIds.contains(place.getId())); // Définit si l'utilisateur a vérifié ce lieu
+        dto.setHasUserVerified(userVerifiedPlaceIds.contains(place.getId()));
         return dto;
     }
 
@@ -92,7 +85,7 @@ public class PlaceService {
                 .lat(placeCreationDTO.getLat())
                 .lng(placeCreationDTO.getLng())
                 .price(placeCreationDTO.getPrice())
-                .placeType(placeCreationDTO.getPlaceType() != null ? placeCreationDTO.getPlaceType() : PlaceType.BAR) // Valeur par défaut ici
+                .placeType(placeCreationDTO.getPlaceType() != null ? placeCreationDTO.getPlaceType() : PlaceType.BAR)
                 .build();
         return placeRepository.save(place);
     }
