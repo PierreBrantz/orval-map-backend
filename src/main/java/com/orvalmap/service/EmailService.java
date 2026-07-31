@@ -27,9 +27,8 @@ public class EmailService {
         Email from = new Email(senderEmail);
         Email toEmail = new Email(to);
         
-        // --- CORRECTION : Utiliser du HTML pour le corps de l'e-mail ---
-        // On garde le corps simple, mais on le met dans un format HTML
-        // pour que le lien soit cliquable.
+        // --- CORRECTION DÉFINITIVE ---
+        // On spécifie bien que le contenu est du HTML
         Content content = new Content("text/html", body); 
         
         Mail mail = new Mail(from, subject, toEmail, content);
