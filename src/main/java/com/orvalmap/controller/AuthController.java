@@ -84,8 +84,9 @@ public class AuthController {
                     user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
                     userRepository.save(user);
 
-                    String resetLink = "orvalmaps://reset-password?token=" + token;
-                    // --- CORRECTION : Créer un corps de message HTML ---
+                    // --- MODIFICATION : Utiliser un lien web standard ---
+                    String resetLink = "https://orvalmaps.com/reset-password?token=" + token;
+
                     String emailBody = String.format(
                         "<p>Bonjour,</p>" +
                         "<p>Pour réinitialiser votre mot de passe, veuillez cliquer sur le lien ci-dessous :</p>" +
