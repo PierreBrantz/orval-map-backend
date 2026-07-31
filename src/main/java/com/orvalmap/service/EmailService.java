@@ -26,7 +26,12 @@ public class EmailService {
     public void sendEmail(String to, String subject, String body) {
         Email from = new Email(senderEmail);
         Email toEmail = new Email(to);
-        Content content = new Content("text/plain", body);
+        
+        // --- CORRECTION : Utiliser du HTML pour le corps de l'e-mail ---
+        // On garde le corps simple, mais on le met dans un format HTML
+        // pour que le lien soit cliquable.
+        Content content = new Content("text/html", body); 
+        
         Mail mail = new Mail(from, subject, toEmail, content);
 
         SendGrid sg = new SendGrid(sendGridApiKey);
@@ -39,7 +44,6 @@ public class EmailService {
             log.info("E-mail envoyé à {}, statut: {}", to, response.getStatusCode());
         } catch (IOException ex) {
             log.error("Erreur lors de l'envoi de l'e-mail à {}", to, ex);
-            // Vous pourriez vouloir lancer une exception personnalisée ici
         }
     }
 }

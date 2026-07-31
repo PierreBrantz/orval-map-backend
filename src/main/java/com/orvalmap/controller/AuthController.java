@@ -85,8 +85,17 @@ public class AuthController {
                     userRepository.save(user);
 
                     String resetLink = "orvalmaps://reset-password?token=" + token;
-                    emailService.sendEmail(user.getEmail(), "Réinitialisation de votre mot de passe OrvalMaps",
-                            "Pour réinitialiser votre mot de passe, cliquez sur le lien suivant : " + resetLink);
+                    // --- CORRECTION : Créer un corps de message HTML ---
+                    String emailBody = String.format(
+                        "<p>Bonjour,</p>" +
+                        "<p>Pour réinitialiser votre mot de passe, veuillez cliquer sur le lien ci-dessous :</p>" +
+                        "<p><a href=\"%s\">Réinitialiser mon mot de passe</a></p>" +
+                        "<p>Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet e-mail.</p>" +
+                        "<p>L'équipe OrvalMaps</p>",
+                        resetLink
+                    );
+
+                    emailService.sendEmail(user.getEmail(), "Réinitialisation de votre mot de passe OrvalMaps", emailBody);
 
                     return ResponseEntity.ok().build();
                 })
