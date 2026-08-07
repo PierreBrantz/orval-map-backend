@@ -38,8 +38,52 @@ public class PlaceService {
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
-        Page<Place> placesPage = placeRepository.findAll(pageable);
+        Page<Place> placesPage;
 
+        // --- CORRECTION : Réintroduction de la logique de filtrage ---
+        boolean isGeoSearch = lat != null && lng != null && radius != null;
+
+        if (isGeoSearch) {
+            // Pour la recherche géographique, on récupère tout puis on filtre en mémoire.
+            // C'est moins performant mais plus simple sans requêtes spatiales.
+            List<Place> allPlaces;
+            if (city != null && !city.isEmpty() && placeType != null) {
+                allPlaces = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType);
+            } else if (city != null && !city.isEmpty()) {
+                allPlaces = placeRepository.findByCityIgnoreCase(city);
+            } else if (placeType != null) {
+                allPlaces = placeRepository.findByPlaceType(placeType);
+            } else {
+                allPlaces = placeRepository.findAll();
+            }
+
+            List<Place> filteredPlaces = allPlaces.stream()
+                    .filter(p -> GeoUtils.distanceKm(lat, lng, p.getLat(), p.getLng()) <= radius)
+                    .collect(Collectors.toList());
+            
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), filteredPlaces.size());
+            
+            if (start > filteredPlaces.size()) {
+                placesPage = new PageImpl<>(Collections.emptyList(), pageable, filteredPlaces.size());
+            } else {
+                placesPage = new PageImpl<>(filteredPlaces.subList(start, end), pageable, filteredPlaces.size());
+            }
+
+        } else {
+            // Recherche paginée directement en base de données
+            if (city != null && !city.isEmpty() && placeType != null) {
+                placesPage = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType, pageable);
+            } else if (city != null && !city.isEmpty()) {
+                placesPage = placeRepository.findByCityIgnoreCase(city, pageable);
+            } else if (placeType != null) {
+                placesPage = placeRepository.findByPlaceType(placeType, pageable);
+            } else {
+                placesPage = placeRepository.findAll(pageable);
+            }
+        }
+
+        // --- Logique de conversion en DTO (inchangée) ---
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         final Set<Long> userVerifiedPlaceIds;
 
@@ -95,15 +139,8 @@ public class PlaceService {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
-        // --- APPROCHE DE SUPPRESSION MANUELLE ET SÉCURISÉE (FINALE) ---
-
-        // 1. Supprimer les dépendances directes (UserPlaceVerification)
         userPlaceVerificationRepository.deleteAllByPlace(place);
-
-        // 2. Casser le lien avec le propriétaire
         place.setOwner(null);
-        
-        // 3. Enfin, supprimer le lieu
         placeRepository.delete(place);
     }
 
