@@ -5,6 +5,8 @@ import com.orvalmap.model.PlaceVisit;
 import com.orvalmap.service.PassportService;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,6 +57,8 @@ public class PassportController {
 
     @Data
     @Builder
+    @NoArgsConstructor // Ajouté pour le constructeur par défaut
+    @AllArgsConstructor // Ajouté pour le constructeur avec tous les arguments
     public static class VisitedPlaceDTO {
         private Long id;
         private String name;
@@ -63,6 +67,7 @@ public class PassportController {
         private double lng;
         private LocalDateTime visitedAt;
 
+        // Constructeur pour mapper depuis PlaceVisit
         public VisitedPlaceDTO(PlaceVisit visit) {
             this.id = visit.getPlace().getId();
             this.name = visit.getPlace().getName();
