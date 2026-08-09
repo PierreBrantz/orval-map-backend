@@ -27,15 +27,13 @@ public class PassportService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // Statistiques de visites
-        List<PlaceVisit> visits = placeVisitRepository.findByUser(user);
+        List<PlaceVisit> visits = getVisitsForUser(username);
         long visitedPlaces = visits.size();
         Set<String> visitedCities = visits.stream()
                 .map(visit -> visit.getPlace().getCity())
                 .collect(Collectors.toSet());
         long visitedCitiesCount = visitedCities.size();
 
-        // Statistiques de suggestions
         long totalSuggestions = placeRequestRepository.countByRequester(user);
         long approvedSuggestions = placeRequestRepository.countByRequesterAndStatus(user, PlaceRequestStatus.APPROVED);
         long pendingSuggestions = placeRequestRepository.countByRequesterAndStatus(user, PlaceRequestStatus.PENDING);
@@ -46,7 +44,6 @@ public class PassportService {
                 .pending(pendingSuggestions)
                 .build();
 
-        // Badges
         List<PassportDTO.Badge> badges = calculateBadges(visitedPlaces, approvedSuggestions);
         PassportDTO.NextGoal nextGoal = findNextGoal(badges);
 
@@ -59,17 +56,21 @@ public class PassportService {
                 .build();
     }
 
+    public List<PlaceVisit> getVisitsForUser(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        return placeVisitRepository.findByUser(user);
+    }
+
     private List<PassportDTO.Badge> calculateBadges(long visitedPlaces, long approvedSuggestions) {
         List<PassportDTO.Badge> badges = new ArrayList<>();
 
-        // Découverte
         badges.add(createBadge("FIRST_DISCOVERY", "Première découverte", visitedPlaces >= 1, visitedPlaces, 1));
         badges.add(createBadge("EXPLORER", "Explorateur", visitedPlaces >= 5, visitedPlaces, 5));
         badges.add(createBadge("ADVENTURER", "Aventurier", visitedPlaces >= 10, visitedPlaces, 10));
         badges.add(createBadge("CONNOISSEUR", "Connaisseur", visitedPlaces >= 25, visitedPlaces, 25));
         badges.add(createBadge("GRAND_EXPLORER", "Grand explorateur", visitedPlaces >= 50, visitedPlaces, 50));
 
-        // Contribution
         badges.add(createBadge("SCOUT", "Éclaireur", approvedSuggestions >= 1, approvedSuggestions, 1));
         badges.add(createBadge("CARTOGRAPHER", "Cartographe", approvedSuggestions >= 5, approvedSuggestions, 5));
 
