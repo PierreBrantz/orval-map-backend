@@ -1,9 +1,10 @@
 package com.orvalmap.controller;
 
 import com.orvalmap.model.Place;
-import com.orvalmap.model.PlaceCreationDTO; // Import de PlaceCreationDTO
+import com.orvalmap.model.PlaceCreationDTO;
 import com.orvalmap.model.PlaceDTO;
 import com.orvalmap.model.PlaceType;
+import com.orvalmap.model.PlaceVisit;
 import com.orvalmap.service.PlaceService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -51,8 +52,8 @@ public class PlaceController {
     @PostMapping("/{id}/verify")
     public ResponseEntity<?> verifyPlace(@PathVariable Long id, Authentication authentication) {
         try {
-            Place verifiedPlace = placeService.verifyPlace(id, authentication.getName());
-            return ResponseEntity.ok(verifiedPlace);
+            PlaceVisit visit = placeService.verifyPlace(id, authentication.getName());
+            return ResponseEntity.ok(visit.getPlace()); // Retourne l'entité Place pour la compatibilité
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Lieu non trouvé")) {
                 return ResponseEntity.notFound().build();
@@ -65,8 +66,8 @@ public class PlaceController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public Place addPlace(@Valid @RequestBody PlaceCreationDTO placeCreationDTO) { // Utilise PlaceCreationDTO
-        return placeService.addPlace(placeCreationDTO); // Passe le DTO au service
+    public Place addPlace(@Valid @RequestBody PlaceCreationDTO placeCreationDTO) {
+        return placeService.addPlace(placeCreationDTO);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

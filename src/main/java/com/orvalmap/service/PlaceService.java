@@ -36,7 +36,8 @@ public class PlaceService {
     private final Cloudinary cloudinary;
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
-    private final UserPlaceVerificationRepository userPlaceVerificationRepository; // Ré-ajouté
+    private final UserPlaceVerificationRepository userPlaceVerificationRepository;
+    private final VisitService visitService; // Ajout du VisitService
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
@@ -155,32 +156,10 @@ public class PlaceService {
                 .orElse(null);
     }
 
-    public Place verifyPlace(Long placeId, String username) {
-        Place place = placeRepository.findById(placeId)
-                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + placeId));
-
-        User verifier = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé : " + username));
-
-        LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
-        boolean alreadyVerifiedRecently = userPlaceVerificationRepository
-                .findTopByVerifierAndPlaceAndVerificationDateAfterOrderByVerificationDateDesc(verifier, place, twentyFourHoursAgo)
-                .isPresent();
-
-        if (alreadyVerifiedRecently) {
-            throw new RuntimeException("Vous avez déjà vérifié ce lieu au cours des dernières 24 heures.");
-        }
-
-        UserPlaceVerification newVerification = UserPlaceVerification.builder()
-                .verifier(verifier)
-                .place(place)
-                .verificationDate(LocalDateTime.now())
-                .build();
-        userPlaceVerificationRepository.save(newVerification);
-
-        place.setVerificationCount(place.getVerificationCount() + 1);
-        place.setLastVerificationDate(LocalDateTime.now());
-        return placeRepository.save(place);
+    @Transactional
+    public PlaceVisit verifyPlace(Long placeId, String username) {
+        // --- CORRECTION : Déléguer au VisitService ---
+        return visitService.markAsVisited(placeId, username);
     }
 
     public String savePlaceImage(Long placeId, MultipartFile file) throws IOException {
