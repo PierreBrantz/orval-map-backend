@@ -43,7 +43,6 @@ public class PlaceService {
         
         Page<Place> placesPage;
 
-        // --- LOGIQUE DE FILTRAGE SIMPLIFIÉE ET CORRIGÉE ---
         if (city != null && !city.isEmpty() && placeType != null) {
             placesPage = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType, pageable);
         } else if (city != null && !city.isEmpty()) {
@@ -54,8 +53,6 @@ public class PlaceService {
             placesPage = placeRepository.findAll(pageable);
         }
 
-        // La recherche géographique est appliquée après, si nécessaire.
-        // Note : Ce n'est pas optimal pour de grands ensembles de données, mais cela fonctionnera.
         if (lat != null && lng != null && radius != null) {
             List<Place> geoFilteredPlaces = placesPage.getContent().stream()
                     .filter(p -> GeoUtils.distanceKm(lat, lng, p.getLat(), p.getLng()) <= radius)
@@ -63,32 +60,27 @@ public class PlaceService {
             placesPage = new PageImpl<>(geoFilteredPlaces, pageable, placesPage.getTotalElements());
         }
 
-        // --- LOGIQUE DE VÉRIFICATION DE VISITE ---
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
-            // Si l'utilisateur n'est pas connecté, on renvoie directement le DTO avec hasUserVerified à false.
             return placesPage.map(place -> convertToDto(place, Collections.emptySet()));
         }
 
         User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
         if (currentUser == null) {
-            // Cas peu probable, mais sécuritaire
+            log.warn("--- DEBUG: Utilisateur authentifié mais non trouvé en base : {} ---", authentication.getName());
             return placesPage.map(place -> convertToDto(place, Collections.emptySet()));
         }
+        log.info("--- DEBUG: Utilisateur connecté trouvé : id={} username={} ---", currentUser.getId(), currentUser.getUsername());
 
-        // Récupère les IDs des lieux de la page actuelle
         List<Long> placeIdsOnPage = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
-        
-        // Si la page est vide, pas besoin de requêter la DB
         if (placeIdsOnPage.isEmpty()) {
             return Page.empty(pageable);
         }
+        log.info("--- DEBUG: IDs des lieux sur la page : {} ---", placeIdsOnPage);
 
-        // Récupère les IDs des lieux visités PARMI ceux de la page actuelle
         Set<Long> visitedPlaceIds = placeVisitRepository.findVisitedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIdsOnPage);
-        log.info("Pour l'utilisateur '{}', lieux visités sur cette page : {}", username, visitedPlaceIds);
+        log.info("--- DEBUG: IDs des lieux visités trouvés pour cet utilisateur : {} ---", visitedPlaceIds);
 
-        // Convertit la page de Place en page de PlaceDTO en utilisant les informations de visite
         return placesPage.map(place -> convertToDto(place, visitedPlaceIds));
     }
 
