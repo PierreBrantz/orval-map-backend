@@ -2,12 +2,11 @@ package com.orvalmap.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.orvalmap.model.*; // Import de tous les modèles
+import com.orvalmap.model.*;
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceRequestRepository;
 import com.orvalmap.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j; // Ajout de l'import pour le logging
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +17,6 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j // Ajout de l'annotation pour le logging
 public class PlaceRequestService {
 
     private final PlaceRequestRepository placeRequestRepository;
@@ -37,13 +35,10 @@ public class PlaceRequestService {
                 .lng(requestDTO.getLng())
                 .price(requestDTO.getPrice())
                 .imageUrl(requestDTO.getImageUrl())
-                .placeType(requestDTO.getPlaceType() != null ? requestDTO.getPlaceType() : PlaceType.BAR) // Valeur par défaut ici
+                .placeType(requestDTO.getPlaceType() != null ? requestDTO.getPlaceType() : PlaceType.BAR)
                 .requester(requester)
                 .status(PlaceRequestStatus.PENDING)
                 .build();
-
-        // --- LIGNE DE DÉBOGAGE ---
-        log.info("Avant sauvegarde, PlaceType de la requête : {}", request.getPlaceType());
 
         return placeRequestRepository.save(request);
     }
@@ -84,7 +79,6 @@ public class PlaceRequestService {
         placeRequestRepository.save(request);
     }
 
-    // ✅ Nouvel upload pour les suggestions (sans ID de lieu encore existant)
     public String uploadRequestImage(MultipartFile file) throws IOException {
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
                 "folder", "orval-map/requests"

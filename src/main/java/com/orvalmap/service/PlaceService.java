@@ -9,7 +9,6 @@ import com.orvalmap.repository.UserRepository;
 import com.orvalmap.repository.UserPlaceVerificationRepository;
 import com.orvalmap.utils.GeoUtils;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PlaceService {
 
     private final PlaceRepository placeRepository;
@@ -41,8 +39,6 @@ public class PlaceService {
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
-        log.info("--- DEBUG: Entrée dans getAllPlaces avec placeType: {} et city: {} ---", placeType, city);
-
         Page<Place> placesPage;
 
         if (city != null && !city.isEmpty() && placeType != null) {
@@ -69,24 +65,19 @@ public class PlaceService {
 
         User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
         if (currentUser == null) {
-            log.warn("--- DEBUG: Utilisateur authentifié mais non trouvé en base : {} ---", authentication.getName());
             return placesPage.map(place -> convertToDto(place, Collections.emptySet()));
         }
-        log.info("--- DEBUG: Utilisateur connecté trouvé : id={} username={} ---", currentUser.getId(), currentUser.getUsername());
 
         List<Long> placeIdsOnPage = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
+        
         if (placeIdsOnPage.isEmpty()) {
             return Page.empty(pageable);
         }
-        log.info("--- DEBUG: IDs des lieux sur la page : {} ---", placeIdsOnPage);
 
-        // --- CORRECTION : Utilisation de la nouvelle méthode plus fiable ---
         Set<Long> visitedPlaceIds = placeVisitRepository.findByUserIdAndPlaceIdIn(currentUser.getId(), placeIdsOnPage)
                 .stream()
                 .map(visit -> visit.getPlace().getId())
                 .collect(Collectors.toSet());
-
-        log.info("--- DEBUG: IDs des lieux visités trouvés pour cet utilisateur : {} ---", visitedPlaceIds);
 
         return placesPage.map(place -> convertToDto(place, visitedPlaceIds));
     }
