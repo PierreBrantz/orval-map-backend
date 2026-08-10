@@ -17,7 +17,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -39,7 +38,6 @@ public class PlaceControllerTest {
 
     @Test
     void testGetAllPlaces() throws Exception {
-        // Création de PlaceDTO pour les tests
         PlaceDTO p1Dto = PlaceDTO.builder()
                 .id(1L).name("Bar1").city("Liège").lat(50.645).lng(5.573).placeType(PlaceType.BAR).hasUserVerified(false).build();
         PlaceDTO p2Dto = PlaceDTO.builder()
@@ -61,9 +59,8 @@ public class PlaceControllerTest {
         creationDTO.setCity("Namur");
         creationDTO.setLat(50.467);
         creationDTO.setLng(4.867);
-        creationDTO.setPlaceType(PlaceType.BAR); // Spécifier le type
+        creationDTO.setPlaceType(PlaceType.BAR);
 
-        // Le service retourne une entité Place, pas un DTO de création
         Place savedPlace = Place.builder()
                 .id(1L)
                 .name(creationDTO.getName())
@@ -71,8 +68,6 @@ public class PlaceControllerTest {
                 .lat(creationDTO.getLat())
                 .lng(creationDTO.getLng())
                 .placeType(creationDTO.getPlaceType())
-                .verificationCount(0)
-                .verifications(Collections.emptySet())
                 .build();
 
         given(placeService.addPlace(any(PlaceCreationDTO.class))).willReturn(savedPlace);
