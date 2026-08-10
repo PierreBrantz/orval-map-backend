@@ -4,8 +4,9 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.orvalmap.model.*; // Import de tous les modèles
 import com.orvalmap.repository.PlaceRepository;
-import com.orvalmap.repository.PlaceVisitRepository; // Changé pour le bon repository
+import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
+import com.orvalmap.repository.UserPlaceVerificationRepository;
 import com.orvalmap.utils.GeoUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +34,9 @@ public class PlaceService {
 
     private final PlaceRepository placeRepository;
     private final Cloudinary cloudinary;
-    private final PlaceVisitRepository placeVisitRepository; // Changé pour le bon repository
+    private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
+    private final UserPlaceVerificationRepository userPlaceVerificationRepository; // Ré-ajouté
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
@@ -80,13 +82,12 @@ public class PlaceService {
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        final Set<Long> userVisitedPlaceIds; // Renommé pour la clarté
+        final Set<Long> userVisitedPlaceIds;
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
             User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
             if (currentUser != null) {
                 List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
-                // --- CORRECTION : Utiliser le bon repository ---
                 userVisitedPlaceIds = placeVisitRepository.findVisitedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIds);
             } else {
                 userVisitedPlaceIds = Collections.emptySet();
@@ -110,7 +111,6 @@ public class PlaceService {
         dto.setPlaceType(place.getPlaceType());
         dto.setVerificationCount(place.getVerificationCount());
         dto.setLastVerificationDate(place.getLastVerificationDate());
-        // --- CORRECTION : Utiliser le bon set d'IDs ---
         dto.setHasUserVerified(userVisitedPlaceIds.contains(place.getId()));
         return dto;
     }
@@ -136,8 +136,7 @@ public class PlaceService {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
-        // Cette méthode n'existe pas, nous allons la remplacer
-        // userPlaceVerificationRepository.deleteAllByPlace(place);
+        userPlaceVerificationRepository.deleteAllByPlace(place);
         
         place.setOwner(null);
         placeRepository.delete(place);
@@ -156,5 +155,47 @@ public class PlaceService {
                 .orElse(null);
     }
 
-    // ... le reste du fichier reste inchangé
+    public Place verifyPlace(Long placeId, String username) {
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + placeId));
+
+        User verifier = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé : " + username));
+
+        LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
+        boolean alreadyVerifiedRecently = userPlaceVerificationRepository
+                .findTopByVerifierAndPlaceAndVerificationDateAfterOrderByVerificationDateDesc(verifier, place, twentyFourHoursAgo)
+                .isPresent();
+
+        if (alreadyVerifiedRecently) {
+            throw new RuntimeException("Vous avez déjà vérifié ce lieu au cours des dernières 24 heures.");
+        }
+
+        UserPlaceVerification newVerification = UserPlaceVerification.builder()
+                .verifier(verifier)
+                .place(place)
+                .verificationDate(LocalDateTime.now())
+                .build();
+        userPlaceVerificationRepository.save(newVerification);
+
+        place.setVerificationCount(place.getVerificationCount() + 1);
+        place.setLastVerificationDate(LocalDateTime.now());
+        return placeRepository.save(place);
+    }
+
+    public String savePlaceImage(Long placeId, MultipartFile file) throws IOException {
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new RuntimeException("Place not found with id: " + placeId));
+
+        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "folder", "orval-map/places"
+        ));
+
+        String imageUrl = (String) uploadResult.get("secure_url");
+
+        place.setImageUrl(imageUrl);
+        placeRepository.save(place);
+
+        return imageUrl;
+    }
 }
