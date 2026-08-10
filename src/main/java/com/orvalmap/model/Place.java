@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,11 +40,6 @@ public class Place {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @Builder.Default
-    private Integer verificationCount = 0;
-
-    private LocalDateTime lastVerificationDate;
-
     @Enumerated(EnumType.STRING)
     private PlaceType placeType;
 
@@ -53,7 +47,5 @@ public class Place {
     @JsonIgnore
     @ToString.Exclude
     @Builder.Default
-    private Set<UserPlaceVerification> verifications = new HashSet<>();
-
-    // Constructeur personnalisé supprimé pour éviter les confusions, Lombok s'en charge.
+    private Set<PlaceVisit> visits = new HashSet<>();
 }

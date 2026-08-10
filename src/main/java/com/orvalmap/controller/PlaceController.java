@@ -4,16 +4,13 @@ import com.orvalmap.model.Place;
 import com.orvalmap.model.PlaceCreationDTO;
 import com.orvalmap.model.PlaceDTO;
 import com.orvalmap.model.PlaceType;
-import com.orvalmap.model.PlaceVisit;
 import com.orvalmap.service.PlaceService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,21 +45,8 @@ public class PlaceController {
         return (place != null) ? ResponseEntity.ok(place) : ResponseEntity.notFound().build();
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @PostMapping("/{id}/verify")
-    public ResponseEntity<?> verifyPlace(@PathVariable Long id, Authentication authentication) {
-        try {
-            PlaceVisit visit = placeService.verifyPlace(id, authentication.getName());
-            return ResponseEntity.ok(visit.getPlace()); // Retourne l'entité Place pour la compatibilité
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("Lieu non trouvé")) {
-                return ResponseEntity.notFound().build();
-            } else if (e.getMessage().contains("Vous avez déjà vérifié ce lieu")) {
-                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(e.getMessage());
-            }
-            return ResponseEntity.internalServerError().body("Une erreur inattendue est survenue: " + e.getMessage());
-        }
-    }
+    // L'endpoint /verify est maintenant géré par VisitController
+    // @PostMapping("/{id}/verify") ...
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping

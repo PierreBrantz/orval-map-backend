@@ -6,7 +6,6 @@ import com.orvalmap.model.*;
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
-import com.orvalmap.repository.UserPlaceVerificationRepository;
 import com.orvalmap.utils.GeoUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +32,6 @@ public class PlaceService {
     private final Cloudinary cloudinary;
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
-    private final UserPlaceVerificationRepository userPlaceVerificationRepository;
-    private final VisitService visitService;
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
@@ -92,8 +88,6 @@ public class PlaceService {
         dto.setPrice(place.getPrice());
         dto.setImageUrl(place.getImageUrl());
         dto.setPlaceType(place.getPlaceType());
-        dto.setVerificationCount(place.getVerificationCount());
-        dto.setLastVerificationDate(place.getLastVerificationDate());
         dto.setHasUserVerified(userVisitedPlaceIds.contains(place.getId()));
         return dto;
     }
@@ -119,7 +113,6 @@ public class PlaceService {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
-        userPlaceVerificationRepository.deleteAllByPlace(place);
         place.setOwner(null);
         placeRepository.delete(place);
     }
@@ -135,11 +128,6 @@ public class PlaceService {
                     return placeRepository.save(existing);
                 })
                 .orElse(null);
-    }
-
-    @Transactional
-    public PlaceVisit verifyPlace(Long placeId, String username) {
-        return visitService.markAsVisited(placeId, username);
     }
 
     public String savePlaceImage(Long placeId, MultipartFile file) throws IOException {

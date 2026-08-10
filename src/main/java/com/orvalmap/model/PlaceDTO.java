@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,7 +18,5 @@ public class PlaceDTO {
     private Double price;
     private String imageUrl;
     private PlaceType placeType;
-    private Integer verificationCount;
-    private LocalDateTime lastVerificationDate;
     private boolean hasUserVerified;
 }
