@@ -2,7 +2,7 @@ package com.orvalmap.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.orvalmap.model.*; // Import de tous les modèles
+import com.orvalmap.model.*;
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
@@ -37,67 +37,59 @@ public class PlaceService {
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
     private final UserPlaceVerificationRepository userPlaceVerificationRepository;
-    private final VisitService visitService; // Ajout du VisitService
+    private final VisitService visitService;
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
         Page<Place> placesPage;
 
-        boolean isGeoSearch = lat != null && lng != null && radius != null;
+        // --- LOGIQUE DE FILTRAGE SIMPLIFIÉE ET CORRIGÉE ---
+        if (city != null && !city.isEmpty() && placeType != null) {
+            placesPage = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType, pageable);
+        } else if (city != null && !city.isEmpty()) {
+            placesPage = placeRepository.findByCityIgnoreCase(city, pageable);
+        } else if (placeType != null) {
+            placesPage = placeRepository.findByPlaceType(placeType, pageable);
+        } else {
+            placesPage = placeRepository.findAll(pageable);
+        }
 
-        if (isGeoSearch) {
-            List<Place> allPlaces;
-            if (city != null && !city.isEmpty() && placeType != null) {
-                allPlaces = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType);
-            } else if (city != null && !city.isEmpty()) {
-                allPlaces = placeRepository.findByCityIgnoreCase(city);
-            } else if (placeType != null) {
-                allPlaces = placeRepository.findByPlaceType(placeType);
-            } else {
-                allPlaces = placeRepository.findAll();
-            }
-
-            List<Place> filteredPlaces = allPlaces.stream()
+        // La recherche géographique est appliquée après, si nécessaire.
+        // Note : Ce n'est pas optimal pour de grands ensembles de données, mais cela fonctionnera.
+        if (lat != null && lng != null && radius != null) {
+            List<Place> geoFilteredPlaces = placesPage.getContent().stream()
                     .filter(p -> GeoUtils.distanceKm(lat, lng, p.getLat(), p.getLng()) <= radius)
                     .collect(Collectors.toList());
-            
-            int start = (int) pageable.getOffset();
-            int end = Math.min((start + pageable.getPageSize()), filteredPlaces.size());
-            
-            if (start > filteredPlaces.size()) {
-                placesPage = new PageImpl<>(Collections.emptyList(), pageable, filteredPlaces.size());
-            } else {
-                placesPage = new PageImpl<>(filteredPlaces.subList(start, end), pageable, filteredPlaces.size());
-            }
-
-        } else {
-            if (city != null && !city.isEmpty() && placeType != null) {
-                placesPage = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType, pageable);
-            } else if (city != null && !city.isEmpty()) {
-                placesPage = placeRepository.findByCityIgnoreCase(city, pageable);
-            } else if (placeType != null) {
-                placesPage = placeRepository.findByPlaceType(placeType, pageable);
-            } else {
-                placesPage = placeRepository.findAll(pageable);
-            }
+            placesPage = new PageImpl<>(geoFilteredPlaces, pageable, placesPage.getTotalElements());
         }
 
+        // --- LOGIQUE DE VÉRIFICATION DE VISITE ---
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        final Set<Long> userVisitedPlaceIds;
-
-        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
-            User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
-            if (currentUser != null) {
-                List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
-                userVisitedPlaceIds = placeVisitRepository.findVisitedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIds);
-            } else {
-                userVisitedPlaceIds = Collections.emptySet();
-            }
-        } else {
-            userVisitedPlaceIds = Collections.emptySet();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            // Si l'utilisateur n'est pas connecté, on renvoie directement le DTO avec hasUserVerified à false.
+            return placesPage.map(place -> convertToDto(place, Collections.emptySet()));
         }
 
-        return placesPage.map(place -> convertToDto(place, userVisitedPlaceIds));
+        User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
+        if (currentUser == null) {
+            // Cas peu probable, mais sécuritaire
+            return placesPage.map(place -> convertToDto(place, Collections.emptySet()));
+        }
+
+        // Récupère les IDs des lieux de la page actuelle
+        List<Long> placeIdsOnPage = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
+        
+        // Si la page est vide, pas besoin de requêter la DB
+        if (placeIdsOnPage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // Récupère les IDs des lieux visités PARMI ceux de la page actuelle
+        Set<Long> visitedPlaceIds = placeVisitRepository.findVisitedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIdsOnPage);
+        log.info("Pour l'utilisateur '{}', lieux visités sur cette page : {}", username, visitedPlaceIds);
+
+        // Convertit la page de Place en page de PlaceDTO en utilisant les informations de visite
+        return placesPage.map(place -> convertToDto(place, visitedPlaceIds));
     }
 
     private PlaceDTO convertToDto(Place place, Set<Long> userVisitedPlaceIds) {
@@ -138,7 +130,6 @@ public class PlaceService {
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
         userPlaceVerificationRepository.deleteAllByPlace(place);
-        
         place.setOwner(null);
         placeRepository.delete(place);
     }
@@ -158,7 +149,6 @@ public class PlaceService {
 
     @Transactional
     public PlaceVisit verifyPlace(Long placeId, String username) {
-        // --- CORRECTION : Déléguer au VisitService ---
         return visitService.markAsVisited(placeId, username);
     }
 
