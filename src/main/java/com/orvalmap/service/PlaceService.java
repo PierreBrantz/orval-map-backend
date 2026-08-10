@@ -41,6 +41,8 @@ public class PlaceService {
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
+        log.info("--- DEBUG: Entrée dans getAllPlaces avec placeType: {} et city: {} ---", placeType, city);
+
         Page<Place> placesPage;
 
         if (city != null && !city.isEmpty() && placeType != null) {
@@ -78,7 +80,12 @@ public class PlaceService {
         }
         log.info("--- DEBUG: IDs des lieux sur la page : {} ---", placeIdsOnPage);
 
-        Set<Long> visitedPlaceIds = placeVisitRepository.findVisitedPlaceIdsByUserAndPlaceIds(currentUser.getId(), placeIdsOnPage);
+        // --- CORRECTION : Utilisation de la nouvelle méthode plus fiable ---
+        Set<Long> visitedPlaceIds = placeVisitRepository.findByUserIdAndPlaceIdIn(currentUser.getId(), placeIdsOnPage)
+                .stream()
+                .map(visit -> visit.getPlace().getId())
+                .collect(Collectors.toSet());
+
         log.info("--- DEBUG: IDs des lieux visités trouvés pour cet utilisateur : {} ---", visitedPlaceIds);
 
         return placesPage.map(place -> convertToDto(place, visitedPlaceIds));
