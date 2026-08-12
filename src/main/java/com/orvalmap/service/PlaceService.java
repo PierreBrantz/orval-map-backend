@@ -118,19 +118,16 @@ public class PlaceService {
 
     @Transactional
     public void deletePlace(Long id) {
-        Place place = placeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
+        if (!placeRepository.existsById(id)) {
+            throw new RuntimeException("Lieu non trouvé avec l'id : " + id);
+        }
         
         // --- CORRECTION DÉFINITIVE ---
-        // 1. Supprimer manuellement les visites associées
-        placeVisitRepository.deleteAll(place.getVisits());
-        place.getVisits().clear();
+        // 1. Supprimer toutes les visites associées via une requête directe
+        placeVisitRepository.deleteAllByPlaceId(id);
 
-        // 2. Casser le lien avec le propriétaire
-        place.setOwner(null);
-        
-        // 3. Enfin, supprimer le lieu
-        placeRepository.delete(place);
+        // 2. Supprimer le lieu
+        placeRepository.deleteById(id);
     }
 
     public Place updatePlace(Long id, Place updatedPlace) {
