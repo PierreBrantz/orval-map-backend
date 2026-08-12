@@ -33,7 +33,7 @@ public class PlaceService {
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
     private final VisitService visitService;
-    private final GeocodingService geocodingService; // Ajout du service
+    private final GeocodingService geocodingService;
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
@@ -99,7 +99,6 @@ public class PlaceService {
     }
 
     public Place addPlace(PlaceCreationDTO placeCreationDTO) {
-        // Logique de géocodage
         geocodingService.getCoordinates(placeCreationDTO.getName(), placeCreationDTO.getCity())
             .ifPresent(coords -> {
                 placeCreationDTO.setLat(Double.parseDouble(coords.getLat()));
@@ -122,7 +121,15 @@ public class PlaceService {
         Place place = placeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id : " + id));
         
+        // --- CORRECTION DÉFINITIVE ---
+        // 1. Supprimer manuellement les visites associées
+        placeVisitRepository.deleteAll(place.getVisits());
+        place.getVisits().clear();
+
+        // 2. Casser le lien avec le propriétaire
         place.setOwner(null);
+        
+        // 3. Enfin, supprimer le lieu
         placeRepository.delete(place);
     }
 
