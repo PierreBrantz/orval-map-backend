@@ -122,11 +122,7 @@ public class PlaceService {
             throw new RuntimeException("Lieu non trouvé avec l'id : " + id);
         }
         
-        // --- CORRECTION DÉFINITIVE ---
-        // 1. Supprimer toutes les visites associées via une requête directe
         placeVisitRepository.deleteAllByPlaceId(id);
-
-        // 2. Supprimer le lieu
         placeRepository.deleteById(id);
     }
 
@@ -138,6 +134,8 @@ public class PlaceService {
                     existing.setLat(updatedPlace.getLat());
                     existing.setLng(updatedPlace.getLng());
                     existing.setPlaceType(updatedPlace.getPlaceType());
+                    existing.setPrice(updatedPlace.getPrice()); // CORRECTION
+                    existing.setImageUrl(updatedPlace.getImageUrl()); // CORRECTION
                     return placeRepository.save(existing);
                 })
                 .orElse(null);
