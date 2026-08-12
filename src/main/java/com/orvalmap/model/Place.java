@@ -43,6 +43,7 @@ public class Place {
     @Enumerated(EnumType.STRING)
     private PlaceType placeType;
 
+    // --- CORRECTION : Ajout de la suppression en cascade ---
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude

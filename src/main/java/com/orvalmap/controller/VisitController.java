@@ -1,7 +1,9 @@
 package com.orvalmap.controller;
 
 import com.orvalmap.model.PlaceVisit;
+import com.orvalmap.model.VisitRequestDTO;
 import com.orvalmap.service.VisitService;
+import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/api/places/{placeId}/visit") // Groupé par 'places' pour la cohérence
+@RequestMapping("/api/places/{placeId}/visit")
 @RequiredArgsConstructor
 public class VisitController {
 
@@ -20,8 +22,12 @@ public class VisitController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping
-    public ResponseEntity<VisitResponse> markAsVisited(@PathVariable Long placeId, Authentication authentication) {
-        PlaceVisit visit = visitService.markAsVisited(placeId, authentication.getName());
+    public ResponseEntity<VisitResponse> markAsVisited(
+            @PathVariable Long placeId,
+            @Valid @RequestBody VisitRequestDTO visitRequest,
+            Authentication authentication) {
+        
+        PlaceVisit visit = visitService.markAsVisited(placeId, authentication.getName(), visitRequest.getLatitude(), visitRequest.getLongitude());
         return ResponseEntity.ok(new VisitResponse(visit.getPlace().getId(), true, visit.getVisitedAt()));
     }
 

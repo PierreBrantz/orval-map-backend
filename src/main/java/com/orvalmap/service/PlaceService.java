@@ -8,7 +8,6 @@ import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
 import com.orvalmap.utils.GeoUtils;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +26,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class PlaceService {
 
     private final PlaceRepository placeRepository;
@@ -36,11 +33,10 @@ public class PlaceService {
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
     private final VisitService visitService;
+    private final GeocodingService geocodingService; // Ajout du service
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
-        log.info("--- DEBUG: Entrée dans getAllPlaces avec placeType: {} et city: {} ---", placeType, city);
-
         Page<Place> placesPage;
 
         if (city != null && !city.isEmpty() && placeType != null) {
@@ -67,24 +63,19 @@ public class PlaceService {
 
         User currentUser = userRepository.findByUsername(authentication.getName()).orElse(null);
         if (currentUser == null) {
-            log.warn("--- DEBUG: Utilisateur authentifié mais non trouvé en base : {} ---", authentication.getName());
             return placesPage.map(place -> convertToDto(place, Collections.emptySet()));
         }
-        log.info("--- DEBUG: Utilisateur connecté trouvé : id={} username={} ---", currentUser.getId(), currentUser.getUsername());
 
         List<Long> placeIdsOnPage = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
+        
         if (placeIdsOnPage.isEmpty()) {
-            log.info("--- DEBUG: placeIdsOnPage est vide. ---");
             return Page.empty(pageable);
         }
-        log.info("--- DEBUG: IDs des lieux sur la page (placeIdsOnPage) : {} ---", placeIdsOnPage);
 
         Set<Long> visitedPlaceIds = placeVisitRepository.findByUserIdAndPlaceIdIn(currentUser.getId(), placeIdsOnPage)
                 .stream()
                 .map(visit -> visit.getPlace().getId())
                 .collect(Collectors.toSet());
-        
-        log.info("--- DEBUG: IDs des lieux visités trouvés pour cet utilisateur (visitedPlaceIds) : {} ---", visitedPlaceIds);
 
         return placesPage.map(place -> convertToDto(place, visitedPlaceIds));
     }
@@ -108,6 +99,13 @@ public class PlaceService {
     }
 
     public Place addPlace(PlaceCreationDTO placeCreationDTO) {
+        // Logique de géocodage
+        geocodingService.getCoordinates(placeCreationDTO.getName(), placeCreationDTO.getCity())
+            .ifPresent(coords -> {
+                placeCreationDTO.setLat(Double.parseDouble(coords.getLat()));
+                placeCreationDTO.setLng(Double.parseDouble(coords.getLon()));
+            });
+
         Place place = Place.builder()
                 .name(placeCreationDTO.getName())
                 .city(placeCreationDTO.getCity())
@@ -155,5 +153,12 @@ public class PlaceService {
         placeRepository.save(place);
 
         return imageUrl;
+    }
+
+    public boolean isOwner(Long placeId, String username) {
+        Place place = placeRepository.findById(placeId).orElse(null);
+        if (place == null || place.getOwner() == null) return false;
+
+        return place.getOwner().getUsername().equals(username);
     }
 }

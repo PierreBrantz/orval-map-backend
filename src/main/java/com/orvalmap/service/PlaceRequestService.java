@@ -23,10 +23,18 @@ public class PlaceRequestService {
     private final PlaceRepository placeRepository;
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
+    private final GeocodingService geocodingService; // Ajout du service
 
     public PlaceRequest createRequest(PlaceRequestDTO requestDTO, String username) {
         User requester = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        // Logique de géocodage
+        geocodingService.getCoordinates(requestDTO.getName(), requestDTO.getCity())
+            .ifPresent(coords -> {
+                requestDTO.setLat(Double.parseDouble(coords.getLat()));
+                requestDTO.setLng(Double.parseDouble(coords.getLon()));
+            });
 
         PlaceRequest request = PlaceRequest.builder()
                 .name(requestDTO.getName())
