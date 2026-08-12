@@ -33,7 +33,6 @@ public class PlaceService {
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
     private final VisitService visitService;
-    private final GeocodingService geocodingService;
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         
@@ -99,12 +98,6 @@ public class PlaceService {
     }
 
     public Place addPlace(PlaceCreationDTO placeCreationDTO) {
-        geocodingService.getCoordinates(placeCreationDTO.getName(), placeCreationDTO.getCity())
-            .ifPresent(coords -> {
-                placeCreationDTO.setLat(Double.parseDouble(coords.getLat()));
-                placeCreationDTO.setLng(Double.parseDouble(coords.getLon()));
-            });
-
         Place place = Place.builder()
                 .name(placeCreationDTO.getName())
                 .city(placeCreationDTO.getCity())
@@ -134,8 +127,8 @@ public class PlaceService {
                     existing.setLat(updatedPlace.getLat());
                     existing.setLng(updatedPlace.getLng());
                     existing.setPlaceType(updatedPlace.getPlaceType());
-                    existing.setPrice(updatedPlace.getPrice()); // CORRECTION
-                    existing.setImageUrl(updatedPlace.getImageUrl()); // CORRECTION
+                    existing.setPrice(updatedPlace.getPrice());
+                    existing.setImageUrl(updatedPlace.getImageUrl());
                     return placeRepository.save(existing);
                 })
                 .orElse(null);
