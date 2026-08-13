@@ -27,7 +27,7 @@ public class VisitController {
             @Valid @RequestBody VisitRequestDTO visitRequest,
             Authentication authentication) {
         
-        PlaceVisit visit = visitService.markAsVisited(placeId, authentication.getName(), visitRequest.getLatitude(), visitRequest.getLongitude());
+        PlaceVisit visit = visitService.markAsVisited(placeId, authentication.getName(), visitRequest.getLat(), visitRequest.getLng());
         return ResponseEntity.ok(new VisitResponse(visit.getPlace().getId(), true, visit.getVisitedAt()));
     }
 

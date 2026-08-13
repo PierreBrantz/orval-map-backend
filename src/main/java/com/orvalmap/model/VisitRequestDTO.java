@@ -6,8 +6,8 @@ import lombok.Data;
 @Data
 public class VisitRequestDTO {
     @NotNull(message = "La latitude est obligatoire")
-    private Double latitude;
+    private Double lat;
 
     @NotNull(message = "La longitude est obligatoire")
-    private Double longitude;
+    private Double lng;
 }
