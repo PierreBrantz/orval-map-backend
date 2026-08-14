@@ -20,6 +20,11 @@ app:
     name: ${CLOUDINARY_CLOUD_NAME}
     key: ${CLOUDINARY_API_KEY}
     secret: ${CLOUDINARY_API_SECRET}
+  
+  version:
+    android:
+      latest: ${ANDROID_LATEST_VERSION:1.0.0}
+      minimum: ${ANDROID_MINIMUM_VERSION:1.0.0}
 
 jwt:
   secret: ${JWT_SECRET:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}

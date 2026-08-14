@@ -32,15 +32,15 @@ public class SecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final Environment environment;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint; // Injection ajoutée
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     public SecurityConfig(
                           UserDetailsServiceImpl userDetailsService,
                           Environment environment,
-                          CustomAuthenticationEntryPoint customAuthenticationEntryPoint) { // Paramètre ajouté
+                          CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
         this.userDetailsService = userDetailsService;
         this.environment = environment;
-        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint; // Initialisation
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
     }
 
     @Bean
@@ -59,14 +59,13 @@ public class SecurityConfig {
         });
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
-        // 🚪 Règles d'accès
         http.authorizeHttpRequests(auth -> {
-            // Endpoints publics
             auth.requestMatchers("/api/auth/**").permitAll();
+            auth.requestMatchers("/api/version").permitAll(); // Ajout de l'endpoint de version
             auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
-            auth.requestMatchers("/error").permitAll(); // Toujours autoriser l'affichage des erreurs
-            auth.requestMatchers("/privacy.html", "/terms.html", "/static/**").permitAll(); // Permettre l'accès aux fichiers statiques
+            auth.requestMatchers("/error").permitAll();
+            auth.requestMatchers("/privacy.html", "/terms.html", "/static/**").permitAll();
 
             if (isDev) {
                 auth.requestMatchers(
@@ -78,12 +77,10 @@ public class SecurityConfig {
                 ).permitAll();
             }
 
-            // Tout le reste sécurisé
             auth.anyRequest().authenticated();
         });
 
-        // Configuration du CustomAuthenticationEntryPoint
-        http.exceptionHandling(exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint)); // Ligne ajoutée
+        http.exceptionHandling(exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint));
 
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.authenticationProvider(authenticationProvider());
