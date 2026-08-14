@@ -20,9 +20,14 @@ import java.util.stream.Collectors;
 @Service
 public class JwtUtil {
 
-    // 🔒 Injection de la clé depuis application.yml (ou variable d'environnement JWT_SECRET)
     @Value("${jwt.secret:cleSecreteAChangerQuiDoitQdMemeetreSuperGrandeEtSecurisee}")
     private String secretKey;
+
+    @Value("${jwt.access-token-expiration-ms:3600000}") // 1 heure
+    private long accessTokenExpirationMs;
+
+    @Value("${jwt.refresh-token-expiration-ms:604800000}") // 7 jours
+    private long refreshTokenExpirationMs;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -34,8 +39,7 @@ public class JwtUtil {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
+        return Jwts.parserBuilder()
                 .setSigningKey(getSignInKey())
                 .build()
                 .parseClaimsJws(token)
@@ -43,8 +47,6 @@ public class JwtUtil {
     }
 
     private Key getSignInKey() {
-        // On décode la clé. Note : En prod, assurez-vous que JWT_SECRET est une chaîne Base64 valide
-        // ou adaptez pour lire les bytes directement si ce n'est pas du Base64.
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
@@ -62,23 +64,26 @@ public class JwtUtil {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    public String generateToken(UserDetailsImpl userDetails) {
+    public String generateAccessToken(UserDetailsImpl userDetails) {
         Map<String, Object> extraClaims = new HashMap<>();
-        
         var roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         extraClaims.put("roles", roles);
 
-        return generateToken(extraClaims, userDetails);
+        return buildToken(extraClaims, userDetails, accessTokenExpirationMs);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    public String generateRefreshToken(UserDetails userDetails) {
+        return buildToken(new HashMap<>(), userDetails, refreshTokenExpirationMs);
+    }
+
+    private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10h
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
