@@ -41,12 +41,9 @@ public class PlaceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Place> getPlaceById(@PathVariable Long id) {
-        Place place = placeService.getPlaceById(id);
+        Place place = placeService.findById(id); // Utilise findById au lieu de getPlaceById
         return (place != null) ? ResponseEntity.ok(place) : ResponseEntity.notFound().build();
     }
-
-    // L'endpoint /verify est maintenant géré par VisitController
-    // @PostMapping("/{id}/verify") ...
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
