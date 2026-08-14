@@ -47,9 +47,4 @@ public class User {
     // Champs pour le reset de mot de passe
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
-
-    // --- NOUVEAUX CHAMPS POUR LE REFRESH TOKEN ---
-    @Column(columnDefinition = "TEXT")
-    private String refreshToken;
-    private LocalDateTime refreshTokenExpiry;
 }

@@ -7,7 +7,6 @@ import com.orvalmap.repository.UserRepository;
 import com.orvalmap.security.JwtUtil;
 import com.orvalmap.security.UserDetailsImpl;
 import com.orvalmap.service.EmailService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -15,7 +14,6 @@ import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,52 +55,21 @@ public class AuthController {
         user = userRepository.save(user);
 
         UserDetailsImpl userDetails = new UserDetailsImpl(user);
-        String accessToken = jwtUtil.generateAccessToken(userDetails);
-        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        String jwtToken = jwtUtil.generateToken(userDetails);
 
-        user.setRefreshToken(refreshToken);
-        user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
+        return ResponseEntity.ok(new AuthResponse(jwtToken));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
+        var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getLogin(), request.getPassword())
         );
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String accessToken = jwtUtil.generateAccessToken(userDetails);
-        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        String jwtToken = jwtUtil.generateToken(userDetails);
 
-        User user = userDetails.getUser();
-        user.setRefreshToken(refreshToken);
-        user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshRequest request) {
-        String refreshToken = request.getRefreshToken();
-        String username = jwtUtil.extractUsername(refreshToken);
-
-        return userRepository.findByUsername(username)
-                .filter(user -> refreshToken.equals(user.getRefreshToken()) && user.getRefreshTokenExpiry().isAfter(LocalDateTime.now()))
-                .map(user -> {
-                    UserDetailsImpl userDetails = new UserDetailsImpl(user);
-                    String newAccessToken = jwtUtil.generateAccessToken(userDetails);
-                    return ResponseEntity.ok(new AuthResponse(newAccessToken, refreshToken));
-                })
-                .orElse(ResponseEntity.status(401).body("Invalid Refresh Token"));
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new AuthResponse(jwtToken));
     }
 
     @PostMapping("/forgot-password")
@@ -151,8 +118,7 @@ public class AuthController {
     // --- DTOs ---
     @Data static class RegisterRequest { @NotBlank private String username; @NotBlank @Email private String email; @NotBlank private String password; }
     @Data static class LoginRequest { private String login; private String password; }
-    @Data static class RefreshRequest { @NotBlank private String refreshToken; }
-    @Data @AllArgsConstructor static class AuthResponse { private String accessToken; private String refreshToken; }
+    @Data @AllArgsConstructor static class AuthResponse { private String token; }
     @Data static class ForgotPasswordRequest { @NotBlank @Email private String email; }
     @Data static class ResetPasswordRequest { @NotBlank private String token; @NotBlank private String newPassword; }
 }

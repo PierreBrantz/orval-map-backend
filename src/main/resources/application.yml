@@ -14,7 +14,6 @@ spring:
       ddl-auto: update
     show-sql: false
 
-# On utilise un préfixe unique 'app.' pour éviter les conflits avec Railway/Docker
 app:
   cloudinary:
     name: ${CLOUDINARY_CLOUD_NAME}
