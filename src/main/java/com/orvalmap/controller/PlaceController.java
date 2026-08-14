@@ -41,7 +41,7 @@ public class PlaceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Place> getPlaceById(@PathVariable Long id) {
-        Place place = placeService.findById(id); // Utilise findById au lieu de getPlaceById
+        Place place = placeService.getPlaceById(id);
         return (place != null) ? ResponseEntity.ok(place) : ResponseEntity.notFound().build();
     }
 
