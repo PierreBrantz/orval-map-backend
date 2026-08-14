@@ -102,9 +102,6 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
-        // Le logout est principalement géré côté client en supprimant les tokens.
-        // Côté serveur, on peut invalider le refresh token si fourni.
-        // Cette implémentation est optionnelle mais plus sécurisée.
         return ResponseEntity.ok().build();
     }
 

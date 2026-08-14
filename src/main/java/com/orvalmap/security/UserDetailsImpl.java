@@ -2,6 +2,7 @@ package com.orvalmap.security;
 
 import com.orvalmap.model.User;
 import lombok.AllArgsConstructor;
+import lombok.Getter; // Ajout de l'import
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class UserDetailsImpl implements UserDetails {
 
+    @Getter // Ajout de l'annotation pour générer le getter
     private final User user;
 
     @Override
