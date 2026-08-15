@@ -8,6 +8,7 @@ import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
 import com.orvalmap.utils.GeoUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class VisitService {
 
     private final PlaceVisitRepository visitRepository;
@@ -30,11 +32,21 @@ public class VisitService {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé"));
 
-        // Vérification de la distance
+        log.info("--- DEBUG: Vérification de la visite ---");
+        log.info("Utilisateur: {} ({})", user.getUsername(), user.getId());
+        log.info("Lieu: {} ({})", place.getName(), place.getId());
+        log.info("Coordonnées utilisateur (reçues): lat={}, lng={}", userLat, userLng);
+        log.info("Coordonnées du lieu (DB): lat={}, lng={}", place.getLat(), place.getLng());
+
         double distance = GeoUtils.distanceKm(userLat, userLng, place.getLat(), place.getLng());
+        log.info("Distance calculée: {} km", distance);
+
         if (distance > MAX_DISTANCE_KM) {
+            log.warn("Visite refusée. Distance ({}) > Seuil ({})", distance, MAX_DISTANCE_KM);
             throw new IllegalStateException("Vous n'êtes pas assez proche du lieu pour le marquer comme visité.");
         }
+
+        log.info("Visite acceptée. Distance ({}) <= Seuil ({})", distance, MAX_DISTANCE_KM);
 
         PlaceVisit visit = visitRepository.findByUserAndPlace(user, place)
                 .orElseGet(() -> PlaceVisit.builder()
