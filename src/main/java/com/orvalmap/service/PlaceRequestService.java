@@ -5,6 +5,7 @@ import com.cloudinary.utils.ObjectUtils;
 import com.orvalmap.model.*;
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceRequestRepository;
+import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,7 @@ public class PlaceRequestService {
     private final PlaceRepository placeRepository;
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
+    private final PlaceVisitRepository placeVisitRepository;
 
     public PlaceRequest createRequest(PlaceRequestDTO requestDTO, String username) {
         User requester = userRepository.findByUsername(username)
@@ -68,8 +71,17 @@ public class PlaceRequestService {
                 .imageUrl(request.getImageUrl())
                 .placeType(request.getPlaceType())
                 .build();
+        
+        placeRepository.save(newPlace);
 
-        return placeRepository.save(newPlace);
+        PlaceVisit visit = PlaceVisit.builder()
+                .user(request.getRequester())
+                .place(newPlace)
+                .visitedAt(LocalDateTime.now())
+                .build();
+        placeVisitRepository.save(visit);
+
+        return newPlace;
     }
 
     public void rejectRequest(Long requestId) {
