@@ -12,8 +12,8 @@ public class AppVersionController {
     @GetMapping("/version")
     public AppVersionResponse getAppVersion() {
         return new AppVersionResponse(
-                "99.0.0",
-                "99.0.0",
+                "1.1.0",
+                "1.1.0",
                 "https://play.google.com/store/apps/details?id=com.orvalmaps" // Remplacez par votre package name
         );
     }
