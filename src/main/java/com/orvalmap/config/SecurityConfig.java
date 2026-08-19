@@ -61,7 +61,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> {
             auth.requestMatchers("/api/auth/**").permitAll();
-            auth.requestMatchers("/api/version").permitAll(); // Ajout de l'endpoint de version
+            auth.requestMatchers("/api/app/version").permitAll(); // Nouvelle route publique
             auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
             auth.requestMatchers("/error").permitAll();
