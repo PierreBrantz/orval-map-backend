@@ -14,7 +14,7 @@ public class AppVersionController {
         return new AppVersionResponse(
                 "1.1.0",
                 "1.1.0",
-                "https://play.google.com/store/apps/details?id=com.orvalmaps" // Remplacez par votre package name
+                "https://play.google.com/store/apps/details?id=com.gmail.orvalmaps"
         );
     }
 }
