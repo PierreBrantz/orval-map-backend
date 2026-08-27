@@ -93,8 +93,23 @@ public class PlaceService {
         return dto;
     }
 
-    public Place getPlaceById(Long id) {
-        return placeRepository.findById(id).orElse(null);
+    public PlaceDTO getPlaceById(Long id) {
+        Place place = placeRepository.findById(id).orElse(null);
+        if (place == null) {
+            return null;
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            return convertToDto(place, Collections.emptySet());
+        }
+
+        return userRepository.findByUsername(authentication.getName())
+                .map(user -> placeVisitRepository.findByUserAndPlace(user, place).isPresent()
+                        ? convertToDto(place, Set.of(place.getId()))
+                        : convertToDto(place, Collections.emptySet()))
+                .orElseGet(() -> convertToDto(place, Collections.emptySet()));
     }
 
     public Place addPlace(PlaceCreationDTO placeCreationDTO) {

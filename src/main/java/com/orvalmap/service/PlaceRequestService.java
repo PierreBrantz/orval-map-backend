@@ -26,6 +26,7 @@ public class PlaceRequestService {
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
     private final PlaceVisitRepository placeVisitRepository;
+    private final EmailService emailService;
 
     public PlaceRequest createRequest(PlaceRequestDTO requestDTO, String username) {
         User requester = userRepository.findByUsername(username)
@@ -81,7 +82,33 @@ public class PlaceRequestService {
                 .build();
         placeVisitRepository.save(visit);
 
+        notifyRequesterOfApproval(request);
+
         return newPlace;
+    }
+
+    private void notifyRequesterOfApproval(PlaceRequest request) {
+        User requester = request.getRequester();
+        if (requester == null || requester.getEmail() == null || requester.getEmail().isBlank()) {
+            return;
+        }
+
+        String emailBody = """
+                <p>Bonjour %s,</p>
+                <p>Bonne nouvelle ! Votre suggestion <strong>%s</strong> à %s a été validée.</p>
+                <p>Elle est maintenant disponible sur OrvalMaps.</p>
+                <p>L'équipe OrvalMaps</p>
+                """.formatted(
+                requester.getUsername(),
+                request.getName(),
+                request.getCity()
+        );
+
+        emailService.sendEmail(
+                requester.getEmail(),
+                "Votre suggestion a été validée",
+                emailBody
+        );
     }
 
     public void rejectRequest(Long requestId) {

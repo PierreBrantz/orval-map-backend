@@ -45,6 +45,9 @@ public class User {
     private Set<Place> ownedPlaces = new HashSet<>();
 
     // Champs pour le reset de mot de passe
+    @JsonIgnore
     private String resetToken;
+
+    @JsonIgnore
     private LocalDateTime resetTokenExpiry;
 }
