@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -35,25 +36,19 @@ public class PlaceService {
     private final VisitService visitService;
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
-        
-        Page<Place> placesPage;
+        // La carte doit recevoir tous les lieux correspondants. On conserve une
+        // réponse Page pour ne pas casser les clients existants, mais sans tronquer
+        // les résultats à la taille de page (20 par défaut).
+        Sort sort = pageable.getSort().isSorted() ? pageable.getSort() : Sort.by("name");
+        List<Place> filteredPlaces = placeRepository.findAll(sort).stream()
+                .filter(p -> city == null || city.isBlank() || p.getCity().equalsIgnoreCase(city))
+                .filter(p -> placeType == null || p.getPlaceType() == placeType)
+                .filter(p -> lat == null || lng == null || radius == null
+                        || GeoUtils.distanceKm(lat, lng, p.getLat(), p.getLng()) <= radius)
+                .collect(Collectors.toList());
 
-        if (city != null && !city.isEmpty() && placeType != null) {
-            placesPage = placeRepository.findByCityIgnoreCaseAndPlaceType(city, placeType, pageable);
-        } else if (city != null && !city.isEmpty()) {
-            placesPage = placeRepository.findByCityIgnoreCase(city, pageable);
-        } else if (placeType != null) {
-            placesPage = placeRepository.findByPlaceType(placeType, pageable);
-        } else {
-            placesPage = placeRepository.findAll(pageable);
-        }
-
-        if (lat != null && lng != null && radius != null) {
-            List<Place> geoFilteredPlaces = placesPage.getContent().stream()
-                    .filter(p -> GeoUtils.distanceKm(lat, lng, p.getLat(), p.getLng()) <= radius)
-                    .collect(Collectors.toList());
-            placesPage = new PageImpl<>(geoFilteredPlaces, pageable, placesPage.getTotalElements());
-        }
+        Pageable unpaged = Pageable.unpaged(sort);
+        Page<Place> placesPage = new PageImpl<>(filteredPlaces, unpaged, filteredPlaces.size());
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
@@ -68,7 +63,7 @@ public class PlaceService {
         List<Long> placeIdsOnPage = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
         
         if (placeIdsOnPage.isEmpty()) {
-            return Page.empty(pageable);
+            return Page.empty(unpaged);
         }
 
         Set<Long> visitedPlaceIds = placeVisitRepository.findByUserIdAndPlaceIdIn(currentUser.getId(), placeIdsOnPage)
