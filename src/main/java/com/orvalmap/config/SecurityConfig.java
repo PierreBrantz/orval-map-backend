@@ -65,7 +65,7 @@ public class SecurityConfig {
             auth.requestMatchers(HttpMethod.GET, "/api/places/**").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
             auth.requestMatchers("/error").permitAll();
-            auth.requestMatchers("/privacy.html", "/terms.html", "/static/**").permitAll();
+            auth.requestMatchers("/privacy.html", "/terms.html", "/support.html", "/static/**").permitAll();
 
             if (isDev) {
                 auth.requestMatchers(
