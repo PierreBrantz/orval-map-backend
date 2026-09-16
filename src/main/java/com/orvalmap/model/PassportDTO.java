@@ -20,6 +20,7 @@ public class PassportDTO {
         private long total;
         private long approved;
         private long pending;
+        private long rejected;
     }
 
     @Data

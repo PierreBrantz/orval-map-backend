@@ -34,14 +34,19 @@ public class PassportService {
                 .collect(Collectors.toSet());
         long visitedCitiesCount = visitedCities.size();
 
-        long totalSuggestions = placeRequestRepository.countByRequester(user);
         long approvedSuggestions = placeRequestRepository.countByRequesterAndStatus(user, PlaceRequestStatus.APPROVED);
         long pendingSuggestions = placeRequestRepository.countByRequesterAndStatus(user, PlaceRequestStatus.PENDING);
+        long rejectedSuggestions = placeRequestRepository.countByRequesterAndStatus(user, PlaceRequestStatus.REJECTED);
+
+        // Une suggestion refusée reste visible séparément, mais ne contribue pas
+        // à la progression positive affichée dans le passeport.
+        long totalSuggestions = approvedSuggestions + pendingSuggestions;
 
         PassportDTO.SuggestionsStats suggestionsStats = PassportDTO.SuggestionsStats.builder()
                 .total(totalSuggestions)
                 .approved(approvedSuggestions)
                 .pending(pendingSuggestions)
+                .rejected(rejectedSuggestions)
                 .build();
 
         List<PassportDTO.Badge> badges = calculateBadges(visitedPlaces, approvedSuggestions);

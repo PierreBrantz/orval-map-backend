@@ -111,11 +111,43 @@ public class PlaceRequestService {
         );
     }
 
+    @Transactional
     public void rejectRequest(Long requestId) {
         PlaceRequest request = placeRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Requête non trouvée"));
+
+        if (request.getStatus() != PlaceRequestStatus.PENDING) {
+            throw new RuntimeException("Cette requête a déjà été traitée");
+        }
+
         request.setStatus(PlaceRequestStatus.REJECTED);
         placeRequestRepository.save(request);
+        notifyRequesterOfRejection(request);
+    }
+
+    private void notifyRequesterOfRejection(PlaceRequest request) {
+        User requester = request.getRequester();
+        if (requester == null || requester.getEmail() == null || requester.getEmail().isBlank()) {
+            return;
+        }
+
+        String emailBody = """
+                <p>Bonjour %s,</p>
+                <p>Votre suggestion <strong>%s</strong> à %s a été examinée, mais n’a pas été retenue.</p>
+                <p>Elle ne sera donc pas ajoutée à la carte pour le moment.</p>
+                <p>Merci pour votre contribution et votre aide à la communauté OrvalMaps.</p>
+                <p>L’équipe OrvalMaps</p>
+                """.formatted(
+                requester.getUsername(),
+                request.getName(),
+                request.getCity()
+        );
+
+        emailService.sendEmail(
+                requester.getEmail(),
+                "Votre suggestion n’a pas été retenue",
+                emailBody
+        );
     }
 
     public String uploadRequestImage(MultipartFile file) throws IOException {
