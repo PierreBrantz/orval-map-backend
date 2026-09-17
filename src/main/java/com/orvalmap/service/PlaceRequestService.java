@@ -2,11 +2,13 @@ package com.orvalmap.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.orvalmap.exception.DuplicatePlaceException;
 import com.orvalmap.model.*;
 import com.orvalmap.repository.PlaceRepository;
 import com.orvalmap.repository.PlaceRequestRepository;
 import com.orvalmap.repository.PlaceVisitRepository;
 import com.orvalmap.repository.UserRepository;
+import com.orvalmap.utils.GeoUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,12 +16,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class PlaceRequestService {
+
+    private static final double DUPLICATE_DISTANCE_KM = 0.1;
 
     private final PlaceRequestRepository placeRequestRepository;
     private final PlaceRepository placeRepository;
@@ -31,6 +37,9 @@ public class PlaceRequestService {
     public PlaceRequest createRequest(PlaceRequestDTO requestDTO, String username) {
         User requester = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        ensureNoPublishedDuplicate(requestDTO.getName(), requestDTO.getLat(), requestDTO.getLng());
+        ensureNoPendingDuplicate(requestDTO.getName(), requestDTO.getLat(), requestDTO.getLng());
 
         PlaceRequest request = PlaceRequest.builder()
                 .name(requestDTO.getName())
@@ -59,6 +68,10 @@ public class PlaceRequestService {
         if (request.getStatus() != PlaceRequestStatus.PENDING) {
             throw new RuntimeException("Cette requête a déjà été traitée");
         }
+
+        // Une autre proposition peut avoir été validée depuis la création de
+        // cette demande : on contrôle donc à nouveau les lieux publiés.
+        ensureNoPublishedDuplicate(request.getName(), request.getLat(), request.getLng());
 
         request.setStatus(PlaceRequestStatus.APPROVED);
         placeRequestRepository.save(request);
@@ -148,6 +161,52 @@ public class PlaceRequestService {
                 "Votre suggestion n’a pas été retenue",
                 emailBody
         );
+    }
+
+    private void ensureNoPublishedDuplicate(String name, double lat, double lng) {
+        String normalizedName = normalizeName(name);
+        placeRepository.findAll().stream()
+                .filter(place -> normalizeName(place.getName()).equals(normalizedName))
+                .filter(place -> GeoUtils.distanceKm(lat, lng, place.getLat(), place.getLng())
+                        <= DUPLICATE_DISTANCE_KM)
+                .findFirst()
+                .ifPresent(place -> {
+                    throw new DuplicatePlaceException(
+                            "Ce bar existe déjà sur la carte : « " + place.getName() + " ».",
+                            "PLACE",
+                            place.getId()
+                    );
+                });
+    }
+
+    private void ensureNoPendingDuplicate(String name, double lat, double lng) {
+        String normalizedName = normalizeName(name);
+        placeRequestRepository.findByStatus(PlaceRequestStatus.PENDING).stream()
+                .filter(request -> normalizeName(request.getName()).equals(normalizedName))
+                .filter(request -> GeoUtils.distanceKm(lat, lng, request.getLat(), request.getLng())
+                        <= DUPLICATE_DISTANCE_KM)
+                .findFirst()
+                .ifPresent(request -> {
+                    throw new DuplicatePlaceException(
+                            "Une suggestion pour ce bar est déjà en attente de validation.",
+                            "PLACE_REQUEST",
+                            request.getId()
+                    );
+                });
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) {
+            return "";
+        }
+
+        String withoutAccents = Normalizer.normalize(name, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        return withoutAccents
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}]+", " ")
+                .trim()
+                .replaceAll("\\s+", " ");
     }
 
     public String uploadRequestImage(MultipartFile file) throws IOException {

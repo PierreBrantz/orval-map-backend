@@ -1,5 +1,6 @@
 package com.orvalmap.advice;
 
+import com.orvalmap.exception.DuplicatePlaceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +14,16 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DuplicatePlaceException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicatePlace(DuplicatePlaceException ex) {
+        Map<String, Object> errorBody = Map.of(
+                "error", ex.getMessage(),
+                "duplicateType", ex.getDuplicateType(),
+                "duplicateId", ex.getDuplicateId()
+        );
+        return new ResponseEntity<>(errorBody, HttpStatus.CONFLICT);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
