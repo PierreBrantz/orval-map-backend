@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -111,6 +112,33 @@ class PlaceRequestServiceTest {
 
         assertThat(saved.getStatus()).isEqualTo(PlaceRequestStatus.PENDING);
         verify(placeRequestRepository).save(saved);
+    }
+
+    @Test
+    void emailsAdminWhenNewRequestIsCreated() {
+        User requester = User.builder()
+                .username("alice")
+                .email("alice@example.com")
+                .build();
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(requester));
+        when(placeRepository.findAll()).thenReturn(List.of());
+        when(placeRequestRepository.findByStatus(PlaceRequestStatus.PENDING)).thenReturn(List.of());
+        when(placeRequestRepository.save(org.mockito.ArgumentMatchers.any(PlaceRequest.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PlaceRequestDTO request = request("Le Porthuis", 50.8503, 4.3517);
+        request.setPrice(5.5);
+
+        placeRequestService.createRequest(request, "alice");
+
+        ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendEmail(
+                eq("orvalMaps@gmail.com"),
+                eq("Nouvelle suggestion de bar à valider : Le Porthuis"),
+                bodyCaptor.capture()
+        );
+        assertThat(bodyCaptor.getValue())
+                .contains("Le Porthuis", "Bruxelles", "50.8503", "4.3517", "alice@example.com");
     }
 
     @Test

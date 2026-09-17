@@ -26,6 +26,7 @@ import java.util.Map;
 public class PlaceRequestService {
 
     private static final double DUPLICATE_DISTANCE_KM = 0.1;
+    private static final String ADMIN_NOTIFICATION_EMAIL = "orvalMaps@gmail.com";
 
     private final PlaceRequestRepository placeRequestRepository;
     private final PlaceRepository placeRepository;
@@ -53,7 +54,9 @@ public class PlaceRequestService {
                 .status(PlaceRequestStatus.PENDING)
                 .build();
 
-        return placeRequestRepository.save(request);
+        PlaceRequest savedRequest = placeRequestRepository.save(request);
+        notifyAdminOfNewRequest(savedRequest);
+        return savedRequest;
     }
 
     public List<PlaceRequest> getAllPendingRequests() {
@@ -120,6 +123,43 @@ public class PlaceRequestService {
         emailService.sendEmail(
                 requester.getEmail(),
                 "Votre suggestion a été validée",
+                emailBody
+        );
+    }
+
+    private void notifyAdminOfNewRequest(PlaceRequest request) {
+        User requester = request.getRequester();
+        String requesterName = requester != null ? requester.getUsername() : "Utilisateur inconnu";
+        String requesterEmail = requester != null && requester.getEmail() != null
+                ? requester.getEmail()
+                : "Non renseignée";
+        String price = request.getPrice() != null ? request.getPrice() + " €" : "Non renseigné";
+
+        String emailBody = """
+                <p>Une nouvelle suggestion de bar vient d’être envoyée sur OrvalMaps.</p>
+                <ul>
+                    <li><strong>Nom :</strong> %s</li>
+                    <li><strong>Ville :</strong> %s</li>
+                    <li><strong>Type :</strong> %s</li>
+                    <li><strong>Prix :</strong> %s</li>
+                    <li><strong>Coordonnées :</strong> %s, %s</li>
+                    <li><strong>Proposée par :</strong> %s (%s)</li>
+                </ul>
+                <p>Cette suggestion est en attente de validation dans l’espace administrateur.</p>
+                """.formatted(
+                request.getName(),
+                request.getCity(),
+                request.getPlaceType(),
+                price,
+                request.getLat(),
+                request.getLng(),
+                requesterName,
+                requesterEmail
+        );
+
+        emailService.sendEmail(
+                ADMIN_NOTIFICATION_EMAIL,
+                "Nouvelle suggestion de bar à valider : " + request.getName(),
                 emailBody
         );
     }
