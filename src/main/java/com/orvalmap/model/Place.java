@@ -34,6 +34,8 @@ public class Place {
 
     private Double price;
 
+    private java.time.Instant priceUpdatedAt;
+
     private String imageUrl;
 
     @ManyToOne

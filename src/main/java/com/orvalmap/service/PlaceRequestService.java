@@ -48,6 +48,7 @@ public class PlaceRequestService {
                 .lat(requestDTO.getLat())
                 .lng(requestDTO.getLng())
                 .price(requestDTO.getPrice())
+                .priceUpdatedAt(requestDTO.getPrice() == null ? null : java.time.Instant.now())
                 .imageUrl(requestDTO.getImageUrl())
                 .placeType(requestDTO.getPlaceType() != null ? requestDTO.getPlaceType() : PlaceType.BAR)
                 .requester(requester)
@@ -85,6 +86,7 @@ public class PlaceRequestService {
                 .lat(request.getLat())
                 .lng(request.getLng())
                 .price(request.getPrice())
+                .priceUpdatedAt(request.getPriceUpdatedAt())
                 .imageUrl(request.getImageUrl())
                 .placeType(request.getPlaceType())
                 .build();

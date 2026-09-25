@@ -16,6 +16,8 @@ public class PlaceDTO {
     private double lat;
     private double lng;
     private Double price;
+
+    private java.time.Instant priceUpdatedAt;
     private String imageUrl;
     private PlaceType placeType;
     private boolean hasUserVerified;

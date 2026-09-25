@@ -30,6 +30,8 @@ public class PlaceRequest {
 
     private Double price;
 
+    private java.time.Instant priceUpdatedAt;
+
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)

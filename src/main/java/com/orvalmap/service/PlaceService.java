@@ -82,6 +82,7 @@ public class PlaceService {
         dto.setLat(place.getLat());
         dto.setLng(place.getLng());
         dto.setPrice(place.getPrice());
+        dto.setPriceUpdatedAt(place.getPriceUpdatedAt());
         dto.setImageUrl(place.getImageUrl());
         dto.setPlaceType(place.getPlaceType());
         dto.setHasUserVerified(userVisitedPlaceIds.contains(place.getId()));
@@ -114,6 +115,7 @@ public class PlaceService {
                 .lat(placeCreationDTO.getLat())
                 .lng(placeCreationDTO.getLng())
                 .price(placeCreationDTO.getPrice())
+                .priceUpdatedAt(placeCreationDTO.getPrice() == null ? null : java.time.Instant.now())
                 .placeType(placeCreationDTO.getPlaceType() != null ? placeCreationDTO.getPlaceType() : PlaceType.BAR)
                 .build();
         return placeRepository.save(place);
@@ -129,14 +131,18 @@ public class PlaceService {
         placeRepository.deleteById(id);
     }
 
+    @Transactional
     public Place updatePlace(Long id, Place updatedPlace) {
-        return placeRepository.findById(id)
+        return placeRepository.findLockedById(id)
                 .map(existing -> {
                     existing.setName(updatedPlace.getName());
                     existing.setCity(updatedPlace.getCity());
                     existing.setLat(updatedPlace.getLat());
                     existing.setLng(updatedPlace.getLng());
                     existing.setPlaceType(updatedPlace.getPlaceType());
+                    if (!java.util.Objects.equals(existing.getPrice(), updatedPlace.getPrice())) {
+                        existing.setPriceUpdatedAt(updatedPlace.getPrice() == null ? null : java.time.Instant.now());
+                    }
                     existing.setPrice(updatedPlace.getPrice());
                     existing.setImageUrl(updatedPlace.getImageUrl());
                     return placeRepository.save(existing);

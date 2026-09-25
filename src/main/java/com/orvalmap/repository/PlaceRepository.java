@@ -12,6 +12,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface PlaceRepository extends JpaRepository<Place, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Place p WHERE p.id = :id")
+    java.util.Optional<Place> findLockedById(@Param("id") Long id);
+
     Page<Place> findByCityIgnoreCase(String city, Pageable pageable);
 
     // Changé pour retourner une Page
