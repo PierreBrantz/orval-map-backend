@@ -1,48 +1,64 @@
 package com.orvalmap.service;
 
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
 public class EmailService {
 
-    @Value("${SENDGRID_API_KEY}")
-    private String sendGridApiKey;
+    private final RestClient brevoClient;
+    private final String senderEmail;
+    private final String senderName;
 
-    @Value("${SENDER_EMAIL}")
-    private String senderEmail;
+    public EmailService(
+            RestClient.Builder restClientBuilder,
+            @Value("${BREVO_API_KEY}") String brevoApiKey,
+            @Value("${SENDER_EMAIL}") String senderEmail,
+            @Value("${SENDER_NAME:Orval Maps}") String senderName) {
+        this.brevoClient = restClientBuilder
+                .baseUrl("https://api.brevo.com/v3")
+                .defaultHeader("api-key", brevoApiKey)
+                .defaultHeader("accept", MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader("content-type", MediaType.APPLICATION_JSON_VALUE)
+                .build();
+        this.senderEmail = senderEmail;
+        this.senderName = senderName;
+    }
 
     public void sendEmail(String to, String subject, String body) {
-        Email from = new Email(senderEmail);
-        Email toEmail = new Email(to);
-        
-        // --- CORRECTION DÉFINITIVE ---
-        // On spécifie bien que le contenu est du HTML
-        Content content = new Content("text/html", body); 
-        
-        Mail mail = new Mail(from, subject, toEmail, content);
+        Map<String, Object> payload = Map.of(
+                "sender", Map.of("name", senderName, "email", senderEmail),
+                "to", List.of(Map.of("email", to)),
+                "subject", subject,
+                "htmlContent", body
+        );
 
-        SendGrid sg = new SendGrid(sendGridApiKey);
-        Request request = new Request();
         try {
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            Response response = sg.api(request);
-            log.info("E-mail envoyé à {}, statut: {}", to, response.getStatusCode());
-        } catch (IOException ex) {
-            log.error("Erreur lors de l'envoi de l'e-mail à {}", to, ex);
+            var response = brevoClient.post()
+                    .uri("/smtp/email")
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("E-mail envoyé à {} via Brevo, statut: {}", to, response.getStatusCode());
+        } catch (RestClientResponseException ex) {
+            log.error(
+                    "Brevo a refusé l'e-mail destiné à {} (statut {}): {}",
+                    to,
+                    ex.getStatusCode(),
+                    ex.getResponseBodyAsString(),
+                    ex
+            );
+        } catch (RestClientException ex) {
+            log.error("Erreur lors de l'envoi de l'e-mail à {} via Brevo", to, ex);
         }
     }
 }

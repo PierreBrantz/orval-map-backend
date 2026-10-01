@@ -42,13 +42,6 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Dépendance SendGrid pour l'envoi d'e-mails via API -->
-        <dependency>
-            <groupId>com.sendgrid</groupId>
-            <artifactId>sendgrid-java</artifactId>
-            <version>4.10.0</version>
-        </dependency>
-
         <!-- Dépendance H2 (mise en commentaire) -->
         <!--
         <dependency>
