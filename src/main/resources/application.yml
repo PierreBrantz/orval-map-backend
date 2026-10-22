@@ -1,6 +1,12 @@
 spring:
   application:
     name: orval-map
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      # Leave room for multipart headers in addition to the photo.
+      max-request-size: 11MB
   
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orvalmap}
