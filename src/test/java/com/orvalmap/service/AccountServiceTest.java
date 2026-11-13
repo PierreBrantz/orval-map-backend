@@ -35,6 +35,8 @@ class AccountServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock private com.orvalmap.repository.CommunityMilestoneRepository communityMilestoneRepository;
+
     @InjectMocks
     private AccountService accountService;
 

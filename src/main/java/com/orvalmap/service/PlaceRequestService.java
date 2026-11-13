@@ -34,6 +34,7 @@ public class PlaceRequestService {
     private final Cloudinary cloudinary;
     private final PlaceVisitRepository placeVisitRepository;
     private final EmailService emailService;
+    private final CommunityMilestoneService communityMilestoneService;
 
     public PlaceRequest createRequest(PlaceRequestDTO requestDTO, String username) {
         User requester = userRepository.findByUsername(username)
@@ -66,6 +67,7 @@ public class PlaceRequestService {
 
     @Transactional
     public Place validateRequest(Long requestId) {
+        communityMilestoneService.lockPublication();
         PlaceRequest request = placeRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Requête non trouvée"));
 
@@ -91,6 +93,7 @@ public class PlaceRequestService {
                 .placeType(request.getPlaceType())
                 .build();
         
+        communityMilestoneService.recordPublication(request.getRequester());
         placeRepository.save(newPlace);
 
         PlaceVisit visit = PlaceVisit.builder()

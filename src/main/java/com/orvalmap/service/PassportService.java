@@ -22,6 +22,7 @@ public class PassportService {
     private final UserRepository userRepository;
     private final PlaceVisitRepository placeVisitRepository;
     private final PlaceRequestRepository placeRequestRepository;
+    private final CommunityMilestoneService communityMilestoneService;
 
     public PassportDTO getPassportForUser(String username) {
         User user = userRepository.findByUsername(username)
@@ -51,6 +52,9 @@ public class PassportService {
 
         List<PassportDTO.Badge> badges = calculateBadges(visitedPlaces, approvedSuggestions);
         PassportDTO.NextGoal nextGoal = findNextGoal(badges);
+        // Unique community award is never a personal next goal.
+        boolean hundredth = communityMilestoneService.isHundredthContributor(user.getId());
+        badges.add(createBadge("HUNDREDTH_PLACE", "Le Centième", hundredth, hundredth ? 1 : 0, 1));
 
         return PassportDTO.builder()
                 .visitedPlaces(visitedPlaces)

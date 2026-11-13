@@ -39,6 +39,8 @@ class PlaceServiceTest {
     @Mock
     private VisitService visitService;
 
+    @Mock private CommunityMilestoneService communityMilestoneService;
+
     @InjectMocks
     private PlaceService placeService;
 

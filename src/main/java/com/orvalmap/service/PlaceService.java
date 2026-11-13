@@ -34,6 +34,7 @@ public class PlaceService {
     private final PlaceVisitRepository placeVisitRepository;
     private final UserRepository userRepository;
     private final VisitService visitService;
+    private final CommunityMilestoneService communityMilestoneService;
 
     public Page<PlaceDTO> getAllPlaces(String city, Double lng, Double lat, Double radius, PlaceType placeType, Pageable pageable) {
         // La carte doit recevoir tous les lieux correspondants. On conserve une
@@ -108,7 +109,9 @@ public class PlaceService {
                 .orElseGet(() -> convertToDto(place, Collections.emptySet()));
     }
 
+    @Transactional
     public Place addPlace(PlaceCreationDTO placeCreationDTO) {
+        communityMilestoneService.lockPublication();
         Place place = Place.builder()
                 .name(placeCreationDTO.getName())
                 .city(placeCreationDTO.getCity())
@@ -118,6 +121,10 @@ public class PlaceService {
                 .priceUpdatedAt(placeCreationDTO.getPrice() == null ? null : java.time.Instant.now())
                 .placeType(placeCreationDTO.getPlaceType() != null ? placeCreationDTO.getPlaceType() : PlaceType.BAR)
                 .build();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User contributor = auth != null && auth.isAuthenticated()
+                ? userRepository.findByUsername(auth.getName()).orElse(null) : null;
+        communityMilestoneService.recordPublication(contributor);
         return placeRepository.save(place);
     }
 

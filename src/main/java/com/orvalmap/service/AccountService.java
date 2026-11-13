@@ -19,6 +19,7 @@ public class AccountService {
     private final PlaceRequestRepository placeRequestRepository;
     private final PlaceRepository placeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.orvalmap.repository.CommunityMilestoneRepository communityMilestoneRepository;
 
     @Transactional
     public boolean deleteAccount(String username, String currentPassword) {
@@ -36,6 +37,7 @@ public class AccountService {
 
         // User est propriétaire de la relation ManyToMany : Hibernate supprime
         // également ses lignes dans user_roles avant de supprimer le compte.
+        communityMilestoneRepository.anonymizeContributor(userId);
         userRepository.delete(user);
         return true;
     }

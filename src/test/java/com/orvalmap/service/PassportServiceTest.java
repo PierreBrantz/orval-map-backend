@@ -25,6 +25,8 @@ class PassportServiceTest {
     @Mock private PlaceVisitRepository placeVisitRepository;
     @Mock private PlaceRequestRepository placeRequestRepository;
 
+    @Mock private CommunityMilestoneService communityMilestoneService;
+
     @InjectMocks
     private PassportService passportService;
 
