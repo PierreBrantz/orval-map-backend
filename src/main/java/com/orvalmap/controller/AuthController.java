@@ -32,6 +32,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
+    private final com.orvalmap.service.RefreshSessionService refreshSessions;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -55,9 +56,8 @@ public class AuthController {
         user = userRepository.save(user);
 
         UserDetailsImpl userDetails = new UserDetailsImpl(user);
-        String jwtToken = jwtUtil.generateToken(userDetails);
 
-        return ResponseEntity.ok(new AuthResponse(jwtToken));
+        return ResponseEntity.ok(refreshSessions.issue(userDetails.getUser()));
     }
 
     @PostMapping("/login")
@@ -67,9 +67,8 @@ public class AuthController {
         );
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String jwtToken = jwtUtil.generateToken(userDetails);
 
-        return ResponseEntity.ok(new AuthResponse(jwtToken));
+        return ResponseEntity.ok(refreshSessions.issue(userDetails.getUser()));
     }
 
     @PostMapping("/forgot-password")
@@ -115,6 +114,16 @@ public class AuthController {
                 .orElse(ResponseEntity.badRequest().body("Token invalide."));
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshRequest request) {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(refreshSessions.refresh(request.getRefreshToken()));
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody RefreshRequest request) {
+        refreshSessions.revoke(request.getRefreshToken());
+        return ResponseEntity.noContent().build();
+    }
+    @Data static class RefreshRequest { private String refreshToken; }
     // --- DTOs ---
     @Data static class RegisterRequest { @NotBlank private String username; @NotBlank @Email private String email; @NotBlank private String password; }
     @Data static class LoginRequest { private String login; private String password; }
